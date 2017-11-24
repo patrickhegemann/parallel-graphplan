@@ -230,7 +230,13 @@ void SASParser::version() {
 void SASParser::metric() {
     std::cout << "Parsing metric section ..." << std::endl;
     expect(METRIC_HEADER);
-    expect("0");
+
+    // If there are action costs, inform that we are going to ignore them
+    if (!accept("0")) {
+        acceptAnyLine();
+        std::cout << "WARNING: Problem has action costs, but they will be ignored." << std::endl;
+    }
+
     expect(METRIC_FOOTER);
 }
 
@@ -450,7 +456,8 @@ void SASParser::singleOperator(int operatorNumber) {
 
     // Operator cost (we don't expect this to play a role, since we only expect
     // "metric" problems)
-    acceptAnyInt();
+    //acceptAnyInt();
+    acceptAnyLine();
 
     expect(OPERATION_FOOTER);
 }
@@ -495,8 +502,10 @@ void SASParser::operatorEffect(int operatorNumber) {
     problem->actionPosEffEdges.push_back(postProp);
     problem->propPosActions[postProp].push_back(operatorNumber);
     
+    /*
     std::cout << "xyz " << postProp << " ab " << problem->propPosActions[postProp].size();
     std::cout << std::endl;
+    */
 
     /*
     std::cout << "Operator " << problem->actionNames[operatorNumber] << " sets ";
