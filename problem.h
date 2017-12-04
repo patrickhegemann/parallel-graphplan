@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <list>
+#include <string>
 
 typedef struct _Problem {
     // Amount of propositions and actions
@@ -13,7 +14,7 @@ typedef struct _Problem {
     std::vector<int> goalPropositions;
 
     // Planning graph edges (note that they are always the same in every layer, if
-    // they appear, so we only need to define them once. They are all implemented
+    // they appear, so we only need to define them once.) They are all implemented
     // with adjacency arrays
     //
     // Would it be good if the idle actions were implicit and thus did not occupy
@@ -32,9 +33,12 @@ typedef struct _Problem {
     // Positive effect edges 2 ("From positive effects to actions")
     // This is needed when determining proposition mutexes
     // Implemented as an adjacency list
-    //std::vector<int> propPosActIndices;
-    //std::vector<int> propPosActEdges;
     std::vector<std::list<int>> propPosActions;
+
+    // Mutexes, here implemented as matrixes. The matrix entries specify the
+    // *last* layer in which the propositions/actions are mutex with each other
+    int *propMutexes;
+    int *actionMutexes;
 
     // Proposition groups (sets of propositions that are together a finite domain
     // variable and as such are always mutex)
@@ -58,5 +62,22 @@ typedef struct _Problem {
     // Action names
     std::vector<std::string> actionNames;
 } Problem;
+
+
+inline int getPropMutex(Problem *p, int a, int b) {
+    return p->propMutexes[a*p->countPropositions + b];
+}
+
+inline void setPropMutex(Problem *p, int a, int b, int layer) {
+    p->propMutexes[a*p->countPropositions + b] = layer;
+}
+
+inline int getActionMutex(Problem *p, int a, int b) {
+    return p->actionMutexes[a*p->countActions + b];
+}
+
+inline void setActionMutex(Problem *p, int a, int b, int layer) {
+    p->actionMutexes[a*p->countActions + b] = layer;
+}
 
 #endif

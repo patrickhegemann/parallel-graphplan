@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <climits>
 
 
 #include "parser.h"
@@ -293,9 +294,10 @@ void SASParser::variables() {
  */
 void SASParser::mutexes() {
     std::cout << "Parsing mutex section ..." << std::endl;
-
+    
     int numMutexes = acceptAnyInt();
-    // TODO: initialize mutex structure
+    problem->propMutexes = new int[problem->countPropositions*problem->countPropositions];
+
     std::cout << "There are " << numMutexes << " mutex groups" << std::endl;
 
     for (int i = 0; i < numMutexes; i++) {
@@ -303,9 +305,9 @@ void SASParser::mutexes() {
         
         // number of facts in the mutex group
         int numFacts = acceptAnyInt();
-        // TODO: modify mutex structure
+        int *facts = new int[numFacts];
 
-        // Facts that are mutex
+        // Read all the facts of the group that are mutex
         for (int j = 0; j < numFacts; j++) {
             // Tokenize this line and read individual tokens
             acceptTokenLine();
@@ -314,7 +316,15 @@ void SASParser::mutexes() {
 
             // Translate variable and value to proposition number
             int prop = varFirstProps[variable] + value;
+            facts[j] = prop;
+
+            // Set these propositions mutex to each other in *every* layer
+            for (int k = 0; k < j; k++) {
+                setPropMutex(problem, prop, facts[k], INT_MAX);
+            }
         }
+
+        delete[] facts;
 
         expect(MUTEX_FOOTER);
     }
@@ -334,8 +344,6 @@ void SASParser::initialstate() {
     //.reserve(problem->countPropositions);
     problem->layerProps.reserve(problem->countPropositions);
     
-    // TODO: maybe one could just completely omit values which indicate
-    // that a variable has "no value"?
     problem->lastPropIndices.push_back(problem->countPropositions);
 
 
