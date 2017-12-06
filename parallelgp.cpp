@@ -8,6 +8,7 @@
 
 // Other includes
 #include <string>
+#include <list>
 
 
 #include "parallelgp.h"
@@ -23,29 +24,39 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    // Parse input file
     char *inputFile = argv[1];
-    std::cout << inputFile << std::endl;
-
     SASParser *parser = new SASParser();
     Problem *problem = parser->parse(inputFile);
-    //parseSAS(inputFile);
-    /*
-    propGroups.reserve(10);
-    propGroups[3] = 4;
-    propGroups[4] = 9;
-    std::cout << propGroups[3] << " " << propGroups[4] << std::endl;
-    */
+    delete parser;
+
+    std::cout << "=========================" << std::endl;
+
+    // Call planner
+    std::list<std::list<int>> plan;
+    int success = graphplan(problem, plan);
+
+    std::cout << "=========================" << std::endl;
+
+    // No plan
+    if (!success) {
+        std::cout << "No plan found" << std::endl;
+        return 0;
+    }
+
+    std::cout << "Plan found!" << std::endl;
+
+    // Output plan
+    int layerNumber = 1;
+    for (auto const& layer : plan) {
+        std::cout << "Actions in layer " << layerNumber << ":" << std::endl;
+        for (auto const& action : layer) {
+            std::cout << problem->actionNames[action] << std::endl;
+        }
+        std::cout << "--------------------" << std::endl;
+        layerNumber++;
+    }
 
     return 0;
 }
 
-
-/*
-void parseSAS(char *inputFile) {
-    std::ifstream file(inputFile);
-    std::string line;
-    while (std::getline(file, line)) {
-        //parseLine(line);
-    }
-}
-*/

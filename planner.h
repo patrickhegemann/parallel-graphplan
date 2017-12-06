@@ -7,7 +7,7 @@
 #include "problem.h"
 
 
-int plan(Problem *problem, std::list<std::list<int>>& plan);
+int graphplan(Problem *problem, std::list<std::list<int>>& plan);
 void expand(Problem *problem);
 
 int extract(Problem *problem, std::vector<int> goal, int layer, std::list<std::list<int>>& plan);

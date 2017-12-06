@@ -14,7 +14,7 @@ void addNogood(int layer, std::vector<int> props) {
 
 
 
-int plan(Problem *problem, std::list<std::list<int>>& plan) {
+int graphplan(Problem *problem, std::list<std::list<int>>& plan) {
 
 }
 
@@ -59,11 +59,11 @@ int gpSearch(Problem *problem, std::vector<int> goal, std::vector<int> actions, 
             int last = problem->actionPrecIndices[a+1] - 1;
             for (std::vector<int>::size_type j = first; j < last; j++) {
                 // TODO: Duplicate detection ?
-                preconds.push_back(actionPrecEdges[j]);
+                preconds.push_back(problem->actionPrecEdges[j]);
             }
         }
 
-        int success = extract(problem, preconds, layer-1);
+        int success = extract(problem, preconds, layer-1, plan);
         if (!success) return 0;
         
         // TODO:
