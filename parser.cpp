@@ -402,20 +402,41 @@ void SASParser::goalstate() {
 void SASParser::operators() {
     std::cout << "Parsing operator section ..." << std::endl;
 
-    int countOperators = acceptAnyInt();
+    // Also add trivial actions
+    int countOperators = acceptAnyInt() + problem->countPropositions;
     problem->countActions = countOperators;
 
     // Initialize problem vectors
     problem->actionPrecIndices.reserve(countOperators);
     problem->actionPosEffIndices.reserve(countOperators);
     problem->actionNegEffIndices.reserve(countOperators);
-    //problem->propPosActIndices.reserve(problem->countPropositions);
     problem->propPosActions.resize(problem->countPropositions);
     problem->actionEnabled.resize(countOperators, 0);
     problem->layerActions.reserve(countOperators);
     problem->actionNames.reserve(countOperators);
 
-    for (int i = 0; i < countOperators; i++) {
+    // Trivial actions
+    for (int i = 0; i < problem->countPropositions; i++) {
+        // Adjacency array indices
+        problem->actionPrecIndices[i] = i;
+        problem->actionPosEffIndices[i] = i;
+        problem->actionNegEffIndices[i] = 0;
+
+        // Edges
+        problem->actionPrecEdges.push_back(i);
+        problem->actionPosEffIndices.push_back(i);
+        problem->propPosActions[i].push_back(i);
+
+        // Already enabled? Depends on initial state
+        problem->actionEnabled[i] = problem->propEnabled[i];
+        if (problem->actionEnabled[i]) {
+            problem->layerActions.push_back(i);
+        }
+
+        problem->actionNames[i] = ("Noop " + std::to_string(i));
+    }
+
+    for (int i = problem->countPropositions; i < countOperators; i++) {
         singleOperator(i);
     }
 }
