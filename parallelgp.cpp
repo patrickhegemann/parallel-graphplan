@@ -11,7 +11,6 @@
 #include <list>
 
 
-#include "parallelgp.h"
 #include "problem.h"
 #include "parser.h"
 #include "planner.h"
