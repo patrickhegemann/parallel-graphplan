@@ -344,7 +344,10 @@ void SASParser::initialstate() {
     //.reserve(problem->countPropositions);
     problem->layerProps.reserve(problem->countPropositions);
     
-    problem->lastPropIndices.push_back(problem->countPropositions);
+    problem->lastPropIndices.push_back(countVariables);
+
+    // TODO:
+    std::cout << "zzzzzzz " << problem->lastPropIndices.back() << std::endl;
 
 
     expect(INITIALSTATE_HEADER);
@@ -406,7 +409,7 @@ void SASParser::operators() {
     int countOperators = acceptAnyInt() + problem->countPropositions;
     problem->countActions = countOperators;
 
-    // Initialize problem vectors
+    // Initialize problem data structure
     problem->actionPrecIndices.reserve(countOperators);
     problem->actionPosEffIndices.reserve(countOperators);
     problem->actionNegEffIndices.reserve(countOperators);
@@ -414,6 +417,7 @@ void SASParser::operators() {
     problem->actionEnabled.resize(countOperators, 0);
     problem->layerActions.reserve(countOperators);
     problem->actionNames.reserve(countOperators);
+    problem->actionMutexes = new int[countOperators*countOperators];
 
     // Trivial actions
     for (int i = 0; i < problem->countPropositions; i++) {
