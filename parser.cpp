@@ -270,13 +270,14 @@ void SASParser::variables() {
 
         //int oldPropCount = problem->countPropositions;
         problem->countPropositions += range;
-        problem->propGroups.reserve(problem->countPropositions);
+        //problem->propGroups.reserve(problem->countPropositions);
 
         // proposition names; maybe later for debugging
         for (int j = varFirstProps[i]; j < varFirstProps[i] + range; j++) {
-            acceptAnyLine();
+            problem->propNames.push_back(acceptAnyLine());
             // We can also use this loop to fill the propGroup vector
-            problem->propGroups[j] = i;
+            //problem->propGroups[j] = i;
+            problem->propGroups.push_back(i);
         }
 
         expect(VARIABLE_FOOTER);
@@ -377,7 +378,7 @@ void SASParser::goalstate() {
     expect(GOALSTATE_HEADER);
     
     int countGoalProps = acceptAnyInt();
-    problem->goalPropositions.reserve(countGoalProps);
+    problem->goalPropositions.resize(countGoalProps);
     
     for (int i = 0; i < countGoalProps; i++) {
         // Tokenize this line and read individual tokens
@@ -412,6 +413,7 @@ void SASParser::operators() {
     problem->actionNegEffIndices.resize(countOperators+1);
     problem->propPosActions.resize(problem->countPropositions);
     problem->actionEnabled.resize(countOperators, 0);
+    problem->actionFirstLayer.resize(countOperators);
     problem->layerActions.resize(countOperators);
     problem->actionNames.reserve(countOperators);
     problem->actionMutexes = new int[countOperators*countOperators];
@@ -434,7 +436,8 @@ void SASParser::operators() {
         //    problem->layerActions.push_back(i);
         //}
 
-        problem->actionNames[i] = ("Noop " + std::to_string(i));
+        //problem->actionNames[i] = ("Noop " + std::to_string(i));
+        problem->actionNames[i] = ("Keep " + problem->propNames[i]);
     }
 
     // Parse actions

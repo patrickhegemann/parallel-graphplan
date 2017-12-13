@@ -45,12 +45,48 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Plan found!" << std::endl;
 
+    // TODO: remove
+    std::cout << problem->actionNames[15] << " x " << problem->actionNames[7] << std::endl;
+    std::cout << "XX " << problem->actionMutexes[15*problem->countActions + 7] << std::endl;
+    std::cout << "XX " << problem->actionMutexes[7*problem->countActions + 15] << std::endl;
+
+    for (int i : problem->lastActionIndices) {
+        std::cout << i << "a ";
+    }
+    std::cout << std::endl;
+
+    for (int i : problem->lastPropIndices) {
+        std::cout << i << "p ";
+    }
+    std::cout << std::endl;
+
     // Output plan
     int layerNumber = 1;
     for (auto const& layer : plan) {
         std::cout << "Actions in layer " << layerNumber << ":" << std::endl;
         for (auto const& action : layer) {
-            std::cout << problem->actionNames[action] << std::endl;
+            std::cout << "\t" << problem->actionNames[action] << std::endl;
+
+            std::cout << "\t\t";
+            for (int k = problem->actionPrecIndices[action];
+                    k < problem->actionPrecIndices[action+1]; k++) {
+                std::cout << "." << problem->propNames[problem->actionPrecEdges[k]] << " ";
+            }
+            std::cout << std::endl;
+
+            std::cout << "\t\t";
+            for (int k = problem->actionPosEffIndices[action];
+                    k < problem->actionPosEffIndices[action+1]; k++) {
+                std::cout << "+" << problem->propNames[problem->actionPosEffEdges[k]] << " ";
+            }
+            std::cout << std::endl;
+
+            std::cout << "\t\t";
+            for (int k = problem->actionNegEffIndices[action];
+                    k < problem->actionNegEffIndices[action+1]; k++) {
+                std::cout << "-" << problem->propNames[problem->actionNegEffEdges[k]] << " ";
+            }
+            std::cout << std::endl;
         }
         std::cout << "--------------------" << std::endl;
         layerNumber++;

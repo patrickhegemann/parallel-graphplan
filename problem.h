@@ -49,6 +49,8 @@ typedef struct _Problem {
     std::vector<char> propEnabled;
     std::vector<char> actionEnabled;
 
+    std::vector<int> actionFirstLayer;
+
     // Arrays that store propositions/actions that are already used in some layer
     std::vector<int> layerProps;
     std::vector<int> layerActions;
@@ -61,24 +63,30 @@ typedef struct _Problem {
 
     // Action names
     std::vector<std::string> actionNames;
+
+    // TODO: remove
+    std::vector<std::string> propNames;
 } Problem;
 
 
-inline int getPropMutex(Problem *p, int a, int b) {
-    return p->propMutexes[a*p->countPropositions + b];
+inline int getPropMutex(Problem *p, int a, int b, int layer) {
+    return (p->propMutexes[a*p->countPropositions + b] >= layer) ||
+        p->propGroups[a] == p->propGroups[b];
 }
 
 inline void setPropMutex(Problem *p, int a, int b, int layer) {
     p->propMutexes[a*p->countPropositions + b] = layer;
+    p->propMutexes[b*p->countPropositions + a] = layer;
     std::cout << "prop " << a << " and " << b << " mutex in layer " << layer << std::endl;
 }
 
-inline int getActionMutex(Problem *p, int a, int b) {
-    return p->actionMutexes[a*p->countActions + b];
+inline int getActionMutex(Problem *p, int a, int b, int layer) {
+    return p->actionMutexes[a*p->countActions + b] >= layer;
 }
 
 inline void setActionMutex(Problem *p, int a, int b, int layer) {
     p->actionMutexes[a*p->countActions + b] = layer;
+    p->actionMutexes[b*p->countActions + a] = layer;
     std::cout << "action " << p->actionNames[a] << " and " << p->actionNames[b] << " mutex in layer " << layer << std::endl;
 }
 

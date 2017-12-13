@@ -1,5 +1,9 @@
 #include <iostream>
 
+// TODO
+//#include <stdlib.h>
+//#include <time.h>
+
 #include "planner.h"
 
 
@@ -18,6 +22,9 @@ int fixedPoint(Problem *problem) {
 
 
 int graphplan(Problem *problem, std::list<std::list<int>>& plan) {
+    // TODO
+    //srand ( time(NULL) ); //initialize the random seed
+
     // TODO: Initialize nogood table
     int layer = 0;
 
@@ -28,16 +35,23 @@ int graphplan(Problem *problem, std::list<std::list<int>>& plan) {
     expand(problem);
     expand(problem);
     expand(problem);
+    expand(problem);
+    layer = 7;
 
     std::list<std::list<int>> p;
     std::list<int> goal(problem->goalPropositions.begin(),
             problem->goalPropositions.end());
 
     int success = extract(problem, goal, layer, p);
+
+    /* 
     while(!success) {
         layer++;
         expand(problem);
+        std::cout << "=======" << std::endl;
         p = *(new std::list<std::list<int>>);
+        std::list<int> goal(problem->goalPropositions.begin(),
+            problem->goalPropositions.end());
         success = extract(problem, goal, layer, p);
 
         // TODO:
@@ -46,6 +60,8 @@ int graphplan(Problem *problem, std::list<std::list<int>>& plan) {
             // TODO
         }
     }
+    */
+    
 
     plan = p;
     return 1;
@@ -96,7 +112,7 @@ void expand(Problem *problem) {
                 // Check for precondition mutexes and abort if mutex was found
                 for (int k = problem->actionPrecIndices[action]; k < j; k++) {
                     int prec2 = problem->actionPrecEdges[k];
-                    if (getPropMutex(problem, prec, prec2) >= currentPropLayer) {
+                    if (getPropMutex(problem, prec, prec2, currentPropLayer)) {
                         enable = false;
                         break;
                     }
@@ -108,13 +124,12 @@ void expand(Problem *problem) {
             // Action not enabled -> continue with next action
             if (!enable) continue;
 
-            std::cout << "Enabling action " << problem->actionNames[action] << std::endl;
-
             // Add the action
             // Enable action in next layer
             problem->lastActionIndices.back()++;
             problem->layerActions[problem->lastActionIndices.back()] = action;
             problem->actionEnabled[action] = 1;
+            problem->actionFirstLayer[action] = nextActionLayer;
 
             // Add positive effects of action to next proposition layer
             for (int i = problem->actionPosEffIndices[action];
@@ -124,9 +139,10 @@ void expand(Problem *problem) {
                 addedProps.push_back(prop);
             }
 
-            // Update action mutexes:
+            // Update action mutexes: TODO: Need to move outside?
             // Iterate other new actions in this layer
-            for (int i = currentLastActionIndex;
+            //for (int i = currentLastActionIndex;
+            for (int i = 0;
                     i < problem->lastActionIndices.back(); i++) {
                 int action2 = problem->layerActions[i];
                 
@@ -182,7 +198,7 @@ int checkPropsMutex(Problem *problem, int p, int q, int actionLayer) {
     for (int a : problem->propPosActions[p]) {
         for (int b : problem->propPosActions[q]) {
             if (problem->actionEnabled[a] && problem->actionEnabled[b] &&
-                    getActionMutex(problem, a, b) < actionLayer) {
+                    !getActionMutex(problem, a, b, actionLayer)) {
                 // Two non-mutex actions exist which resp. enable p and q
                 return false;
             }
@@ -237,7 +253,7 @@ int checkActionPrecsMutex(Problem *problem, int a, int b, int layer) {
             int prec2 = problem->actionPrecEdges[j];
 
             // Check if mutex
-            if (getPropMutex(problem, prec, prec2) >= layer) {
+            if (getPropMutex(problem, prec, prec2, layer)) {
                 return true;
             }
         }
@@ -250,6 +266,11 @@ int checkActionPrecsMutex(Problem *problem, int a, int b, int layer) {
 int extract(Problem *problem, std::list<int> goal, int layer,
         std::list<std::list<int>>& plan) {
     std::cout << "Extracting" << std::endl;
+
+    for (int g : goal) {
+        std::cout << g << ", ";
+    }
+    std::cout << std::endl;
 
     // Trivial success
     if (layer == 0) {
@@ -278,6 +299,11 @@ int extract(Problem *problem, std::list<int> goal, int layer,
 int gpSearch(Problem *problem, std::list<int> goal, std::list<int> actions,
         int layer, std::list<std::list<int>>& plan) {
     std::cout << "Performing gpSearch" << std::endl;
+
+    for (int g : goal) {
+        std::cout << problem->propNames[g] << ", ";
+    }
+    std::cout << std::endl;
 
     // All actions already chosen
     if (goal.empty()) {
@@ -309,10 +335,22 @@ int gpSearch(Problem *problem, std::list<int> goal, std::list<int> actions,
     // Get providers (actions) of p
     std::list<int> providers;
     for (int provider : problem->propPosActions[p]) {
+        // Check if provider is enabled
+        if (!(problem->actionEnabled[provider]) || problem->actionFirstLayer[provider] > layer) continue;
+
         // Check if provider is mutex with any action
         bool mut = false;
         for (int act : actions) {
-            if (getActionMutex(problem, provider, act) >= layer) {
+            if ((act == 15 && provider == 7) || (act == 7 && provider == 15)) {
+        std::cout << problem->actionNames[15] << " x " << problem->actionNames[7] << std::endl;
+        std::cout << "XX " << problem->actionMutexes[15*problem->countActions + 7] << std::endl;
+        std::cout << "XX " << problem->actionMutexes[7*problem->countActions + 15] << std::endl;
+        std::cout << "l" << layer << std::endl;
+            }
+
+            // TODO:                                         v off by one?
+            if (getActionMutex(problem, provider, act, layer+1)) {
+                std::cout << "ACTION MUTEX " << provider << " " << act << std::endl;
                 mut = true;
                 break;
             }
@@ -330,12 +368,27 @@ int gpSearch(Problem *problem, std::list<int> goal, std::list<int> actions,
     // TODO: choose one
     // Add a providing action
     int a = providers.front();
+
+    /*
+    int a; 
+    int randIndex = rand() % providers.size();
+    std::cout << randIndex << std::endl;
+    int counter;
+    for (int i : providers) {
+        if (counter == randIndex) {
+            a = i;
+            break;
+        }
+        counter++;
+    }
+    */
     actions.push_back(a);
+
     
     // Remove action effects from goal list
     int first = problem->actionPosEffIndices[a];
     int last = problem->actionPosEffIndices[a+1] - 1;
-    for (std::vector<int>::size_type i = first; i < last; i++) {
+    for (std::vector<int>::size_type i = first; i <= last; i++) {
         goal.remove(problem->actionPosEffEdges[i]);
     }
 
