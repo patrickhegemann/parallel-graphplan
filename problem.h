@@ -70,6 +70,7 @@ inline int getPropMutex(Problem *p, int a, int b) {
 
 inline void setPropMutex(Problem *p, int a, int b, int layer) {
     p->propMutexes[a*p->countPropositions + b] = layer;
+    std::cout << "prop " << a << " and " << b << " mutex in layer " << layer << std::endl;
 }
 
 inline int getActionMutex(Problem *p, int a, int b) {
@@ -78,6 +79,7 @@ inline int getActionMutex(Problem *p, int a, int b) {
 
 inline void setActionMutex(Problem *p, int a, int b, int layer) {
     p->actionMutexes[a*p->countActions + b] = layer;
+    std::cout << "action " << p->actionNames[a] << " and " << p->actionNames[b] << " mutex in layer " << layer << std::endl;
 }
 
 #endif

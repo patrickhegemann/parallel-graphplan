@@ -23,6 +23,11 @@ int graphplan(Problem *problem, std::list<std::list<int>>& plan) {
 
     // TODO: Fixed point iteration
     expand(problem);
+    expand(problem);
+    expand(problem);
+    expand(problem);
+    expand(problem);
+    expand(problem);
 
     std::list<std::list<int>> p;
     std::list<int> goal(problem->goalPropositions.begin(),
@@ -47,7 +52,7 @@ int graphplan(Problem *problem, std::list<std::list<int>>& plan) {
 }
 
 void expand(Problem *problem) {
-    std::cout << "Expanding graph" << std::endl;
+    std::cout << std::endl << "Expanding graph" << std::endl;
     
     // Note that we always generate an action layer number (i) and a prop layer (i+1)
     int currentPropLayer = problem->lastPropIndices.size();
@@ -55,16 +60,23 @@ void expand(Problem *problem) {
     int nextActionLayer = currentPropLayer;
 
     // Copy last proposition and action indices for next layer
-    int currentLastPropIndex = problem->lastPropIndices.back();
-    int currentLastActionIndex = problem->lastActionIndices.back();
+    int currentLastPropIndex, currentLastActionIndex;
+    currentLastPropIndex = problem->lastPropIndices.back();
+    if (!problem->lastActionIndices.empty()) {
+        currentLastActionIndex = problem->lastActionIndices.back();
+    } else{
+        currentLastActionIndex = -1;
+    }
     problem->lastPropIndices.push_back(currentLastPropIndex);
     problem->lastActionIndices.push_back(currentLastActionIndex);
+
+    std::list<int> addedProps;
 
     // Add actions
     for(int action = 0; action < problem->countActions; action++) {
         // Only check disabled actions
         // Potential for optimization: use a list of unused actions
-        // Also, what about trivial actions?
+        
         if (!problem->actionEnabled[action]) {
             bool enable = true;
 
@@ -72,6 +84,10 @@ void expand(Problem *problem) {
             for (int j = problem->actionPrecIndices[action];
                     j < problem->actionPrecIndices[action+1]; j++) {
                 int prec = problem->actionPrecEdges[j];
+                
+                //std::cout << "Action " << problem->actionNames[action];
+                //std::cout << " preconditions " << prec << std::endl;
+
                 if (!problem->propEnabled[prec]) {
                     enable = false;
                     break;
@@ -92,6 +108,8 @@ void expand(Problem *problem) {
             // Action not enabled -> continue with next action
             if (!enable) continue;
 
+            std::cout << "Enabling action " << problem->actionNames[action] << std::endl;
+
             // Add the action
             // Enable action in next layer
             problem->lastActionIndices.back()++;
@@ -102,14 +120,11 @@ void expand(Problem *problem) {
             for (int i = problem->actionPosEffIndices[action];
                     i < problem->actionPosEffIndices[action+1]; i++) {
                 int prop = problem->actionPosEffEdges[i];
-                if (!problem->propEnabled[prop]) {
-                    problem->lastPropIndices.back()++;
-                    problem->layerProps[problem->lastPropIndices.back()] = prop;
-                    problem->propEnabled[prop] = 1;
-                }
+                //std::cout << problem->actionNames[action] << " enables " << prop << std::endl;
+                addedProps.push_back(prop);
             }
 
-            // Update action mutexes: (TODO: Need to move outside?)
+            // Update action mutexes:
             // Iterate other new actions in this layer
             for (int i = currentLastActionIndex;
                     i < problem->lastActionIndices.back(); i++) {
@@ -124,8 +139,17 @@ void expand(Problem *problem) {
         }
     }
 
+    // Add propositions
+    for (int prop : addedProps) {
+        if (!problem->propEnabled[prop]) {
+            problem->lastPropIndices.back()++;
+            problem->layerProps[problem->lastPropIndices.back()] = prop;
+            problem->propEnabled[prop] = 1;
+        }
+    }
+
     // Update proposition mutexes
-    for (int i = 0; i < problem->lastPropIndices.back(); i++) {
+    for (int i = 0; i <= problem->lastPropIndices.back(); i++) {
         int p = problem->layerProps[i];
         for (int j = 0; j < i; j++) {
             int q = problem->layerProps[j];
@@ -134,6 +158,19 @@ void expand(Problem *problem) {
             }
         }
     }
+
+
+    // debug:
+    std::cout << "Enabled actions: " << std::endl;
+    for (int i = 0; i <= problem->lastActionIndices.back(); i++) {
+        std::cout << "\t" << problem->actionNames[problem->layerActions[i]] << std::endl;
+    }
+    std::cout << std::endl;
+    std::cout << "Enabled propositions: ";
+    for (int i = 0; i <= problem->lastPropIndices.back(); i++) {
+        std::cout << problem->layerProps[i] << ", ";
+    }
+    std::cout << std::endl;
 }
 
 
@@ -168,7 +205,7 @@ int checkActionsMutex(Problem *problem, int a, int b) {
         // Check if negative effects collide with preconditions
         for (int k = problem->actionPrecIndices[b];
                 k < problem->actionPrecIndices[b+1]; k++) {
-            if (negEff = problem->actionPrecEdges[k]) {
+            if (negEff == problem->actionPrecEdges[k]) {
                 return true;
             }
         }
@@ -176,7 +213,7 @@ int checkActionsMutex(Problem *problem, int a, int b) {
         // Check if negative effects collide with positive effects
         for (int k = problem->actionPosEffIndices[b];
                 k < problem->actionPosEffIndices[b+1]; k++) {
-            if (negEff = problem->actionPosEffEdges[k]) {
+            if (negEff == problem->actionPosEffEdges[k]) {
                 return true;
             }
         }

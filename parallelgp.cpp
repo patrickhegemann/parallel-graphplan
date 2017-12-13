@@ -35,8 +35,6 @@ int main(int argc, char *argv[]) {
     std::list<std::list<int>> plan;
     int success = graphplan(problem, plan);
 
-    std::cout << "jjjjj " << problem->lastPropIndices.back() << std::endl;
-
     std::cout << "=========================" << std::endl;
 
     // No plan

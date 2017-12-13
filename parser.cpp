@@ -344,10 +344,7 @@ void SASParser::initialstate() {
     //.reserve(problem->countPropositions);
     problem->layerProps.reserve(problem->countPropositions);
     
-    problem->lastPropIndices.push_back(countVariables);
-
-    // TODO:
-    std::cout << "zzzzzzz " << problem->lastPropIndices.back() << std::endl;
+    problem->lastPropIndices.push_back(countVariables-1);
 
 
     expect(INITIALSTATE_HEADER);
@@ -410,12 +407,12 @@ void SASParser::operators() {
     problem->countActions = countOperators;
 
     // Initialize problem data structure
-    problem->actionPrecIndices.reserve(countOperators);
-    problem->actionPosEffIndices.reserve(countOperators);
-    problem->actionNegEffIndices.reserve(countOperators);
+    problem->actionPrecIndices.resize(countOperators+1);
+    problem->actionPosEffIndices.resize(countOperators+1);
+    problem->actionNegEffIndices.resize(countOperators+1);
     problem->propPosActions.resize(problem->countPropositions);
     problem->actionEnabled.resize(countOperators, 0);
-    problem->layerActions.reserve(countOperators);
+    problem->layerActions.resize(countOperators);
     problem->actionNames.reserve(countOperators);
     problem->actionMutexes = new int[countOperators*countOperators];
 
@@ -428,21 +425,27 @@ void SASParser::operators() {
 
         // Edges
         problem->actionPrecEdges.push_back(i);
-        problem->actionPosEffIndices.push_back(i);
+        problem->actionPosEffEdges.push_back(i);
         problem->propPosActions[i].push_back(i);
 
         // Already enabled? Depends on initial state
-        problem->actionEnabled[i] = problem->propEnabled[i];
-        if (problem->actionEnabled[i]) {
-            problem->layerActions.push_back(i);
-        }
+        //problem->actionEnabled[i] = problem->propEnabled[i];
+        //if (problem->actionEnabled[i]) {
+        //    problem->layerActions.push_back(i);
+        //}
 
         problem->actionNames[i] = ("Noop " + std::to_string(i));
     }
 
+    // Parse actions
     for (int i = problem->countPropositions; i < countOperators; i++) {
         singleOperator(i);
     }
+
+    // Prepare an additional last element for the adjacency arrays
+    problem->actionPrecIndices[problem->countActions] = problem->actionPrecEdges.size();
+    problem->actionPosEffIndices[problem->countActions] = problem->actionPosEffEdges.size();
+    problem->actionNegEffIndices[problem->countActions] = problem->actionNegEffEdges.size();
 }
 
 /**
