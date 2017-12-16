@@ -32,8 +32,9 @@ int main(int argc, char *argv[]) {
     std::cout << "=========================" << std::endl;
 
     // Call planner
+    Planner *planner = new Planner(problem);
     std::list<std::list<int>> plan;
-    int success = graphplan(problem, plan);
+    int success = planner->graphplan(plan);
 
     std::cout << "=========================" << std::endl;
 

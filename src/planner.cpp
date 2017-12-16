@@ -7,21 +7,26 @@
 #include "planner.h"
 
 
-int isNogood(int layer, std::list<int> props) {
+Planner::Planner(Problem *problem) {
+    this->problem = problem;
+}
+
+int Planner::isNogood(int layer, std::list<int> props) {
     // TODO: Implement
     return 0;
 }
 
-void addNogood(int layer, std::list<int> props) {
+void Planner::addNogood(int layer, std::list<int> props) {
     // TODO: Implement
 }
 
-int fixedPoint(Problem *problem) {
+int Planner::fixedPoint() {
     // TODO: Implement
+    return true;
 }
 
 
-int graphplan(Problem *problem, std::list<std::list<int>>& plan) {
+int Planner::graphplan(std::list<std::list<int>>& plan) {
     // TODO
     //srand ( time(NULL) ); //initialize the random seed
 
@@ -29,20 +34,20 @@ int graphplan(Problem *problem, std::list<std::list<int>>& plan) {
     int layer = 0;
 
     // TODO: Fixed point iteration
-    expand(problem);
-    expand(problem);
-    expand(problem);
-    expand(problem);
-    expand(problem);
-    expand(problem);
-    expand(problem);
+    expand();
+    expand();
+    expand();
+    expand();
+    expand();
+    expand();
+    expand();
     layer = 7;
 
     std::list<std::list<int>> p;
     std::list<int> goal(problem->goalPropositions.begin(),
             problem->goalPropositions.end());
 
-    int success = extract(problem, goal, layer, p);
+    int success = extract(goal, layer, p);
 
     /* 
     while(!success) {
@@ -64,10 +69,10 @@ int graphplan(Problem *problem, std::list<std::list<int>>& plan) {
     
 
     plan = p;
-    return 1;
+    return success;
 }
 
-void expand(Problem *problem) {
+void Planner::expand() {
     std::cout << std::endl << "Expanding graph" << std::endl;
     
     // Note that we always generate an action layer number (i) and a prop layer (i+1)
@@ -146,9 +151,9 @@ void expand(Problem *problem) {
                     i < problem->lastActionIndices.back(); i++) {
                 int action2 = problem->layerActions[i];
                 
-                if (checkActionsMutex(problem, action, action2) ||
-                        checkActionsMutex(problem, action2, action) ||
-                        checkActionPrecsMutex(problem, action, action2, currentPropLayer)) {
+                if (checkActionsMutex(action, action2) ||
+                        checkActionsMutex(action2, action) ||
+                        checkActionPrecsMutex(action, action2, currentPropLayer)) {
                     setActionMutex(problem, action, action2, nextActionLayer);
                 }
             }
@@ -169,7 +174,7 @@ void expand(Problem *problem) {
         int p = problem->layerProps[i];
         for (int j = 0; j < i; j++) {
             int q = problem->layerProps[j];
-            if (checkPropsMutex(problem, p, q, nextActionLayer)) {
+            if (checkPropsMutex(p, q, nextActionLayer)) {
                 setPropMutex(problem, p, q, nextPropLayer);
             }
         }
@@ -194,7 +199,7 @@ void expand(Problem *problem) {
  * Checks if two propositions will be mutex in the proposition layer following
  * the given action layer
  */
-int checkPropsMutex(Problem *problem, int p, int q, int actionLayer) {
+int Planner::checkPropsMutex(int p, int q, int actionLayer) {
     for (int a : problem->propPosActions[p]) {
         for (int b : problem->propPosActions[q]) {
             if (problem->actionEnabled[a] && problem->actionEnabled[b] &&
@@ -212,7 +217,7 @@ int checkPropsMutex(Problem *problem, int p, int q, int actionLayer) {
  * Checks if two actions will be mutex in the next layer.
  * Has to be called twice: once with actions (a,b), then with (b,a).
  */
-int checkActionsMutex(Problem *problem, int a, int b) {
+int Planner::checkActionsMutex(int a, int b) {
     // Iterate the action's negative effects
     for (int j = problem->actionNegEffIndices[a];
             j < problem->actionNegEffIndices[a+1]; j++) {
@@ -241,7 +246,7 @@ int checkActionsMutex(Problem *problem, int a, int b) {
 /**
  * Checks if the preconditions of two actions are mutex in the given layer
  */
-int checkActionPrecsMutex(Problem *problem, int a, int b, int layer) {
+int Planner::checkActionPrecsMutex(int a, int b, int layer) {
     // Iterate a's preconditions
     for (int i = problem->actionPrecIndices[a];
             i < problem->actionPrecIndices[a+1]; i++) {
@@ -263,7 +268,7 @@ int checkActionPrecsMutex(Problem *problem, int a, int b, int layer) {
 }
 
 
-int extract(Problem *problem, std::list<int> goal, int layer,
+int Planner::extract(std::list<int> goal, int layer,
         std::list<std::list<int>>& plan) {
     std::cout << "Extracting" << std::endl;
 
@@ -283,7 +288,7 @@ int extract(Problem *problem, std::list<int> goal, int layer,
 
     // Perform the graphplan search
     std::list<int> actions;
-    int success = gpSearch(problem, goal, actions, layer, plan);
+    int success = gpSearch(goal, actions, layer, plan);
 
     // Plan found
     if (success) {
@@ -296,7 +301,7 @@ int extract(Problem *problem, std::list<int> goal, int layer,
     return 0;
 }
 
-int gpSearch(Problem *problem, std::list<int> goal, std::list<int> actions,
+int Planner::gpSearch(std::list<int> goal, std::list<int> actions,
         int layer, std::list<std::list<int>>& plan) {
     std::cout << "Performing gpSearch" << std::endl;
 
@@ -313,7 +318,7 @@ int gpSearch(Problem *problem, std::list<int> goal, std::list<int> actions,
         for (int a : actions) {
             //int a = actions[i];
             int first = problem->actionPrecIndices[a];
-            int last = problem->actionPrecIndices[a+1] - 1;
+            unsigned int last = problem->actionPrecIndices[a+1] - 1;
             for (std::vector<int>::size_type j = first; j <= last; j++) {
                 // TODO: Duplicate detection ?
                 preconds.push_back(problem->actionPrecEdges[j]);
@@ -321,7 +326,7 @@ int gpSearch(Problem *problem, std::list<int> goal, std::list<int> actions,
         }
 
         // Try satisfying preconditions in previous layer
-        int success = extract(problem, preconds, layer-1, plan);
+        int success = extract(preconds, layer-1, plan);
         if (!success) return 0;
         
         // Plan found, add actions to plan and return success
@@ -387,12 +392,12 @@ int gpSearch(Problem *problem, std::list<int> goal, std::list<int> actions,
     
     // Remove action effects from goal list
     int first = problem->actionPosEffIndices[a];
-    int last = problem->actionPosEffIndices[a+1] - 1;
+    unsigned int last = problem->actionPosEffIndices[a+1] - 1;
     for (std::vector<int>::size_type i = first; i <= last; i++) {
         goal.remove(problem->actionPosEffEdges[i]);
     }
 
     // Call recursively
-    return gpSearch(problem, goal, actions, layer, plan);
+    return gpSearch(goal, actions, layer, plan);
 }
 

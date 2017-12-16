@@ -5,7 +5,7 @@
 #include <list>
 #include <string>
 
-typedef struct _Problem {
+struct Problem {
     // Amount of propositions and actions
     int countPropositions;
     int countActions;
@@ -66,7 +66,7 @@ typedef struct _Problem {
 
     // TODO: remove
     std::vector<std::string> propNames;
-} Problem;
+};
 
 
 inline int getPropMutex(Problem *p, int a, int b, int layer) {
