@@ -28,7 +28,7 @@ int Planner::fixedPoint() {
 
 int Planner::graphplan(std::list<std::list<int>>& plan) {
     // TODO
-    //srand ( time(NULL) ); //initialize the random seed
+    srand(time(NULL)); //initialize the random seed
 
     // TODO: Initialize nogood table
     int layer = 0;
@@ -49,23 +49,22 @@ int Planner::graphplan(std::list<std::list<int>>& plan) {
 
     int success = extract(goal, layer, p);
 
-    /* 
     while(!success) {
         layer++;
-        expand(problem);
-        std::cout << "=======" << std::endl;
+        expand();
+        //std::cout << "=======" << std::endl;
         p = *(new std::list<std::list<int>>);
         std::list<int> goal(problem->goalPropositions.begin(),
             problem->goalPropositions.end());
-        success = extract(problem, goal, layer, p);
+        success = extract(goal, layer, p);
 
         // TODO:
-        if ((!success) && fixedPoint(problem)) {
+        if ((!success) && fixedPoint()) {
             // if (TODO) return 0;
             // TODO
         }
     }
-    */
+    
     
 
     plan = p;
@@ -73,7 +72,7 @@ int Planner::graphplan(std::list<std::list<int>>& plan) {
 }
 
 void Planner::expand() {
-    std::cout << std::endl << "Expanding graph" << std::endl;
+    //std::cout << "Expanding graph" << std::endl;
     
     // Note that we always generate an action layer number (i) and a prop layer (i+1)
     int currentPropLayer = problem->lastPropIndices.size();
@@ -144,19 +143,6 @@ void Planner::expand() {
                 addedProps.push_back(prop);
             }
 
-            // Update action mutexes: TODO: Need to move outside?
-            // Iterate other new actions in this layer
-            //for (int i = currentLastActionIndex;
-            for (int i = 0;
-                    i < problem->lastActionIndices.back(); i++) {
-                int action2 = problem->layerActions[i];
-                
-                if (checkActionsMutex(action, action2) ||
-                        checkActionsMutex(action2, action) ||
-                        checkActionPrecsMutex(action, action2, currentPropLayer)) {
-                    setActionMutex(problem, action, action2, nextActionLayer);
-                }
-            }
         }
     }
 
@@ -166,6 +152,22 @@ void Planner::expand() {
             problem->lastPropIndices.back()++;
             problem->layerProps[problem->lastPropIndices.back()] = prop;
             problem->propEnabled[prop] = 1;
+        }
+    }
+
+    // Update action mutexes
+    // Iterate other new actions in this layer
+    for (int i = 0; i < problem->lastActionIndices.back(); i++) {
+        int action = problem->layerActions[i];
+
+        for (int j = 0; j < i; j++) {
+            int action2 = problem->layerActions[j];
+
+            if (checkActionsMutex(action, action2) ||
+                    checkActionsMutex(action2, action) ||
+                    checkActionPrecsMutex(action, action2, currentPropLayer)) {
+                setActionMutex(problem, action, action2, nextActionLayer);
+            }
         }
     }
 
@@ -180,8 +182,8 @@ void Planner::expand() {
         }
     }
 
-
     // debug:
+    /*
     std::cout << "Enabled actions: " << std::endl;
     for (int i = 0; i <= problem->lastActionIndices.back(); i++) {
         std::cout << "\t" << problem->actionNames[problem->layerActions[i]] << std::endl;
@@ -192,6 +194,7 @@ void Planner::expand() {
         std::cout << problem->layerProps[i] << ", ";
     }
     std::cout << std::endl;
+    */
 }
 
 
@@ -268,14 +271,15 @@ int Planner::checkActionPrecsMutex(int a, int b, int layer) {
 }
 
 
-int Planner::extract(std::list<int> goal, int layer,
-        std::list<std::list<int>>& plan) {
-    std::cout << "Extracting" << std::endl;
+int Planner::extract(std::list<int> goal, int layer, std::list<std::list<int>>& plan) {
+    //std::cout << "Extracting" << std::endl;
 
+    /*
     for (int g : goal) {
         std::cout << g << ", ";
     }
     std::cout << std::endl;
+    */
 
     // Trivial success
     if (layer == 0) {
@@ -301,14 +305,15 @@ int Planner::extract(std::list<int> goal, int layer,
     return 0;
 }
 
-int Planner::gpSearch(std::list<int> goal, std::list<int> actions,
-        int layer, std::list<std::list<int>>& plan) {
-    std::cout << "Performing gpSearch" << std::endl;
+int Planner::gpSearch(std::list<int> goal, std::list<int> actions, int layer, std::list<std::list<int>>& plan) {
+    //std::cout << "Performing gpSearch" << std::endl;
 
+    /*
     for (int g : goal) {
         std::cout << problem->propNames[g] << ", ";
     }
     std::cout << std::endl;
+    */
 
     // All actions already chosen
     if (goal.empty()) {
@@ -346,16 +351,18 @@ int Planner::gpSearch(std::list<int> goal, std::list<int> actions,
         // Check if provider is mutex with any action
         bool mut = false;
         for (int act : actions) {
+            /*
             if ((act == 15 && provider == 7) || (act == 7 && provider == 15)) {
         std::cout << problem->actionNames[15] << " x " << problem->actionNames[7] << std::endl;
         std::cout << "XX " << problem->actionMutexes[15*problem->countActions + 7] << std::endl;
         std::cout << "XX " << problem->actionMutexes[7*problem->countActions + 15] << std::endl;
         std::cout << "l" << layer << std::endl;
             }
+            */
 
             // TODO:                                         v off by one?
-            if (getActionMutex(problem, provider, act, layer+1)) {
-                std::cout << "ACTION MUTEX " << provider << " " << act << std::endl;
+            if (getActionMutex(problem, provider, act, layer)) {
+                // std::cout << "ACTION MUTEX " << provider << " " << act << std::endl;
                 mut = true;
                 break;
             }
@@ -372,13 +379,14 @@ int Planner::gpSearch(std::list<int> goal, std::list<int> actions,
     
     // TODO: choose one
     // Add a providing action
-    int a = providers.front();
+    //int a = providers.front();
 
-    /*
-    int a; 
-    int randIndex = rand() % providers.size();
-    std::cout << randIndex << std::endl;
-    int counter;
+    
+    int a = 0;
+    int rnd = rand();
+    int randIndex = rnd % providers.size();
+    // std::cout << "RANDOM " << rnd << " % " << providers.size() << "=" << randIndex << std::endl;
+    int counter = 0;
     for (int i : providers) {
         if (counter == randIndex) {
             a = i;
@@ -386,7 +394,7 @@ int Planner::gpSearch(std::list<int> goal, std::list<int> actions,
         }
         counter++;
     }
-    */
+    
     actions.push_back(a);
 
     
