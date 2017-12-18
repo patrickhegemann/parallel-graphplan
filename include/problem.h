@@ -4,6 +4,7 @@
 #include <vector>
 #include <list>
 #include <string>
+#include <iostream>
 
 struct Problem {
     // Amount of propositions and actions
@@ -77,7 +78,7 @@ inline int getPropMutex(Problem *p, int a, int b, int layer) {
 inline void setPropMutex(Problem *p, int a, int b, int layer) {
     p->propMutexes[a*p->countPropositions + b] = layer;
     p->propMutexes[b*p->countPropositions + a] = layer;
-    std::cout << "prop " << a << " and " << b << " mutex in layer " << layer << std::endl;
+    //std::cout << "prop " << a << " and " << b << " mutex in layer " << layer << std::endl;
 }
 
 inline int getActionMutex(Problem *p, int a, int b, int layer) {
@@ -87,7 +88,7 @@ inline int getActionMutex(Problem *p, int a, int b, int layer) {
 inline void setActionMutex(Problem *p, int a, int b, int layer) {
     p->actionMutexes[a*p->countActions + b] = layer;
     p->actionMutexes[b*p->countActions + a] = layer;
-    std::cout << "action " << p->actionNames[a] << " and " << p->actionNames[b] << " mutex in layer " << layer << std::endl;
+    //std::cout << "action " << p->actionNames[a] << " and " << p->actionNames[b] << " mutex in layer " << layer << std::endl;
 }
 
 #endif

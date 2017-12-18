@@ -14,6 +14,7 @@
 #include "problem.h"
 #include "parser.h"
 #include "planner.h"
+#include "planVerifier.h"
 
 
 
@@ -24,19 +25,25 @@ int main(int argc, char *argv[]) {
     }
 
     // Parse input file
+    
+    std::cout << "Parsing ... ";
+    
     char *inputFile = argv[1];
     SASParser *parser = new SASParser();
     Problem *problem = parser->parse(inputFile);
     delete parser;
 
-    std::cout << "=========================" << std::endl;
+    std::cout << "DONE" << std::endl;
+
+    // ========================================================================
+
+    std::cout << "Searching plan ... ";
 
     // Call planner
     Planner *planner = new Planner(problem);
     std::list<std::list<int>> plan;
     int success = planner->graphplan(plan);
-
-    std::cout << "=========================" << std::endl;
+    delete planner;
 
     // No plan
     if (!success) {
@@ -46,11 +53,9 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Plan found!" << std::endl;
 
-    // TODO: remove
-    std::cout << problem->actionNames[15] << " x " << problem->actionNames[7] << std::endl;
-    std::cout << "XX " << problem->actionMutexes[15*problem->countActions + 7] << std::endl;
-    std::cout << "XX " << problem->actionMutexes[7*problem->countActions + 15] << std::endl;
+    // ========================================================================
 
+    /*
     for (int i : problem->lastActionIndices) {
         std::cout << i << "a ";
     }
@@ -60,14 +65,18 @@ int main(int argc, char *argv[]) {
         std::cout << i << "p ";
     }
     std::cout << std::endl;
+    */
 
-    // Output plan
+    // Output plan (long version)
+    /*
     int layerNumber = 1;
     for (auto const& layer : plan) {
         std::cout << "Actions in layer " << layerNumber << ":" << std::endl;
         for (auto const& action : layer) {
             std::cout << "\t" << problem->actionNames[action] << std::endl;
-
+            
+            */
+            /*
             std::cout << "\t\t";
             for (int k = problem->actionPrecIndices[action];
                     k < problem->actionPrecIndices[action+1]; k++) {
@@ -88,10 +97,41 @@ int main(int argc, char *argv[]) {
                 std::cout << "-" << problem->propNames[problem->actionNegEffEdges[k]] << " ";
             }
             std::cout << std::endl;
+            */
+            /*
         }
         std::cout << "--------------------" << std::endl;
         layerNumber++;
     }
+    */
+
+    // ========================================================================
+
+    // Output plan (short version)
+    int step = 0;
+    std::cout << std::endl << "step";
+    for (auto layer : plan) {
+        for (auto action : layer) {
+            if (action >= problem->countPropositions) {
+                std::cout << "\t" << step << " : " << problem->actionNames[action] << std::endl;
+                step++;
+            }
+        }
+    }
+    std::cout << std::endl;
+
+    // ========================================================================
+
+    std::cout << "Verifying plan ... ";
+    PlanVerifier ver(problem, plan);
+    int planValid = ver.verify();
+
+    if (planValid) {
+        std::cout << "Plan OK";
+    } else {
+        std::cout << "Plan INVALID";
+    }
+    std::cout << std::endl;
 
     return 0;
 }

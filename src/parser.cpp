@@ -64,8 +64,6 @@ Problem* SASParser::parse(char *filename) {
     operators();
     //axioms();
 
-    std::cout << "Done parsing!" << std::endl;
-
     file.close();
 
     return problem;
@@ -219,7 +217,7 @@ int SASParser::expectVarValuePair(int *variable, int *value) {
  * Parses the version section of a SAS file
  */
 void SASParser::version() {
-    std::cout << "Parsing version section ..." << std::endl;
+    //std::cout << "Parsing version section ..." << std::endl;
     expect(VERSION_HEADER);
     expect("3");
     expect(VERSION_FOOTER);
@@ -229,7 +227,7 @@ void SASParser::version() {
  * Parses the metric section
  */
 void SASParser::metric() {
-    std::cout << "Parsing metric section ..." << std::endl;
+    //std::cout << "Parsing metric section ..." << std::endl;
     expect(METRIC_HEADER);
 
     // If there are action costs, inform that we are going to ignore them
@@ -245,11 +243,11 @@ void SASParser::metric() {
  * Parses the variables section
  */
 void SASParser::variables() {
-    std::cout << "Parsing variables section ..." << std::endl;
+    //std::cout << "Parsing variables section ..." << std::endl;
     
     countVariables = acceptAnyInt();
     varFirstProps.reserve(countVariables+1);
-    std::cout << "There are " << countVariables << " finite domain variables" << std::endl;
+    //std::cout << "There are " << countVariables << " finite domain variables" << std::endl;
 
     // Initialize problem
     problem->countPropositions = 0;
@@ -294,12 +292,12 @@ void SASParser::variables() {
  * Parses the mutex section
  */
 void SASParser::mutexes() {
-    std::cout << "Parsing mutex section ..." << std::endl;
+    //std::cout << "Parsing mutex section ..." << std::endl;
     
     int numMutexes = acceptAnyInt();
     problem->propMutexes = new int[problem->countPropositions*problem->countPropositions];
 
-    std::cout << "There are " << numMutexes << " mutex groups" << std::endl;
+    //std::cout << "There are " << numMutexes << " mutex groups" << std::endl;
 
     for (int i = 0; i < numMutexes; i++) {
         expect(MUTEX_HEADER);
@@ -337,7 +335,7 @@ void SASParser::mutexes() {
  * Parses the initial state section
  */
 void SASParser::initialstate() {
-    std::cout << "Parsing initial state section ..." << std::endl;
+    //std::cout << "Parsing initial state section ..." << std::endl;
 
     // Initialize problem vectors
     //problem->propEnabled = std::vector<char>(problem->countPropositions, 0);
@@ -373,7 +371,7 @@ void SASParser::initialstate() {
  * Parses the goal state section
  */
 void SASParser::goalstate() {
-    std::cout << "Parsing goal state section ..." << std::endl;
+    //std::cout << "Parsing goal state section ..." << std::endl;
 
     expect(GOALSTATE_HEADER);
     
@@ -388,7 +386,7 @@ void SASParser::goalstate() {
 
         // Translate variable and value to proposition number
         int prop = varFirstProps[variable] + value;
-        std::cout << "goal prop: " << prop << " (variable " << variable << " has value " << value << ")" << std::endl;
+        //std::cout << "goal prop: " << prop << " (variable " << variable << " has value " << value << ")" << std::endl;
 
         problem->goalPropositions[i] = prop;
     }
@@ -401,7 +399,7 @@ void SASParser::goalstate() {
  * Parse the operator section
  */
 void SASParser::operators() {
-    std::cout << "Parsing operator section ..." << std::endl;
+    //std::cout << "Parsing operator section ..." << std::endl;
 
     // Also add trivial actions
     int countOperators = acceptAnyInt() + problem->countPropositions;
