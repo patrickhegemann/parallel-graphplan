@@ -18,6 +18,9 @@ class Planner {
         int fixedPoint = 0;
         int fixedMutexes = 0;
 
+        int countNogoods = 0;
+        std::vector<std::vector<int>> nogoods;
+
         int checkFixedPoint();
         int checkGoalUnreachable(int layer);
 

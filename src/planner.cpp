@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iterator>
 #include <climits>
+#include <algorithm>
 
 #include "planner.h"
 
@@ -10,12 +11,50 @@ Planner::Planner(Problem *problem) {
 }
 
 int Planner::isNogood(int layer, std::list<int> props) {
-    // TODO: Implement
-    return 0;
+    // No nogoods added for specified layer -> can't be a nogood
+    if (nogoods.size() <= (unsigned int) layer) return false;
+
+    unsigned int propsFoundInNogood = 0;
+
+    //std::cout << "layer " << layer << std::endl;
+
+    for (unsigned int i = 0; i < nogoods[layer].size(); i++) {
+        int p = nogoods[layer][i];
+        // Next nogood -> reset
+        if (p == 0) {
+            // Exactly the propositions found in this nogood
+            if (propsFoundInNogood == props.size()) {
+                //std::cout << "nogood found" << std::endl;
+                return true;
+            }
+            propsFoundInNogood = 0;
+            continue;
+        }
+
+        // Check if the proposition is one of our wanted propositions
+        if (std::find(props.begin(), props.end(), p) != props.end()) {
+            //std::cout << p << std::endl;
+            propsFoundInNogood++;
+        }
+    }
+
+    return false;
 }
 
 void Planner::addNogood(int layer, std::list<int> props) {
-    // TODO: Implement
+    // Add vectors to the nogood table until we have sufficiently many layers
+    while (nogoods.size() <= (unsigned int) layer) {
+        nogoods.push_back(std::vector<int>());
+    }
+
+    // Add the nogood to the specified layer
+    for (int p : props) {
+        nogoods[layer].push_back(p);
+    }
+    // Push a 0 for separating nogoods
+    nogoods[layer].push_back(0);
+
+    countNogoods++;
 }
 
 /**
@@ -72,11 +111,8 @@ int Planner::checkGoalUnreachable(int layer) {
 
 
 int Planner::graphplan(std::list<std::list<int>>& plan) {
-    // TODO: remove if unnecessary
     // Initialize the random seed
     srand(time(NULL));
-
-    // TODO: Initialize nogood table
 
     int layer = 0;
 
@@ -108,8 +144,7 @@ int Planner::graphplan(std::list<std::list<int>>& plan) {
         success = extract(goal, layer, plan);
 
         if ((!success) && fixedPoint) {
-            // if (TODO) return 0;
-            // TODO
+            // TODO: Check if nogood table not growing -> no plan
         }
     }
 
