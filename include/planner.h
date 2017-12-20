@@ -15,9 +15,14 @@ class Planner {
     private:
         Problem *problem;
 
-        int fixedPoint();
+        int fixedPoint = 0;
+        int fixedMutexes = 0;
+
+        int checkFixedPoint();
+        int checkGoalUnreachable(int layer);
 
         void expand();
+        void updateNewLayerMutexes(int currentPropLayer);
         int checkPropsMutex(int p, int q, int actionLayer);
         int checkActionsMutex(int a, int b);
         int checkActionPrecsMutex(int a, int b, int layer);

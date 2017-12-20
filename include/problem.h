@@ -5,6 +5,7 @@
 #include <list>
 #include <string>
 #include <iostream>
+#include <climits>
 
 struct Problem {
     // Amount of propositions and actions
@@ -45,11 +46,13 @@ struct Problem {
     // variable and as such are always mutex)
     std::vector<int> propGroups;
 
+    // TODO: One could merge actionEnabled and actionFirstLayer; would need some recoding of the planner.
     // Arrays that indicate whether a proposition or action did already occur in
     // any layer of the planning graph. Values are always 0 or 1
     std::vector<char> propEnabled;
     std::vector<char> actionEnabled;
 
+    // Arrays that indicate in which layer a proposition first shows up
     std::vector<int> actionFirstLayer;
 
     // Arrays that store propositions/actions that are already used in some layer
@@ -60,6 +63,14 @@ struct Problem {
     // layer contains propositions/actions from the layerProps/layerActions arrays
     std::list<int> lastPropIndices;
     std::list<int> lastActionIndices;
+
+    /*
+    // How many mutexes are in the current last layer of the graph
+    int lastPropMutexCount;
+    */
+    // Arrays indicating the amount of proposition mutexes in each proposition layer
+    // for calculating if a fixed-point level is reached
+    std::vector<int> layerPropMutexCount;
 
 
     // Action names
@@ -76,6 +87,10 @@ inline int getPropMutex(Problem *p, int a, int b, int layer) {
 }
 
 inline void setPropMutex(Problem *p, int a, int b, int layer) {
+    // See if this is a new mutex for this layer and in that case count up
+    if (layer < INT_MAX && !getPropMutex(p, a, b, layer)) {
+        p->layerPropMutexCount[layer]++;
+    }
     p->propMutexes[a*p->countPropositions + b] = layer;
     p->propMutexes[b*p->countPropositions + a] = layer;
     //std::cout << "prop " << a << " and " << b << " mutex in layer " << layer << std::endl;

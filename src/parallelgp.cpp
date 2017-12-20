@@ -43,7 +43,6 @@ int main(int argc, char *argv[]) {
     Planner *planner = new Planner(problem);
     std::list<std::list<int>> plan;
     int success = planner->graphplan(plan);
-    delete planner;
 
     // No plan
     if (!success) {
@@ -52,6 +51,8 @@ int main(int argc, char *argv[]) {
     }
 
     std::cout << "Plan found!" << std::endl;
+
+    delete planner;
 
     // ========================================================================
 
