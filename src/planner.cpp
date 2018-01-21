@@ -42,6 +42,12 @@ int Planner::isNogood(int layer, std::list<int> props) {
 }
 
 void Planner::addNogood(int layer, std::list<int> props) {
+    std::cout << "New nogood in layer " << layer << ": ";
+    for (int p : props) {
+        std::cout << p << ", ";
+    }
+    std::cout << std::endl;
+
     // Add vectors to the nogood table until we have sufficiently many layers
     while (nogoods.size() <= (unsigned int) layer) {
         nogoods.push_back(std::vector<int>());
@@ -134,8 +140,13 @@ int Planner::graphplan(std::list<std::list<int>>& plan) {
 
     while(!success) {
         // Expand for one more layer
-        layer++;
-        expand();
+        //getchar();
+        std::cout << "Layer " << layer << std::endl;
+        if (!fixedPoint) {
+            layer++;
+            expand();
+            fixedPoint = checkFixedPoint();
+        }
 
         // Do backwards search with given goal propositions
         plan.clear();
@@ -149,6 +160,7 @@ int Planner::graphplan(std::list<std::list<int>>& plan) {
     }
 
     //plan = p;
+    std::cout << "Final number of layers: " << layer << std::endl;
     return success;
 }
 
@@ -173,6 +185,7 @@ void Planner::expand() {
     problem->lastPropIndices.push_back(currentLastPropIndex);
     problem->lastActionIndices.push_back(currentLastActionIndex);
 
+    // TODO: Remove this because we won't expand past the fixed point
     // If we reached a fixed point we don't need to do anything else.
     // No adding of actions or propositions needed, since those will be carried
     // over implicitly.
@@ -389,14 +402,12 @@ int Planner::checkActionPrecsMutex(int a, int b, int layer) {
 
 
 int Planner::extract(std::list<int> goal, int layer, std::list<std::list<int>>& plan) {
-    //std::cout << "Extracting" << std::endl;
-
-    /*
+    std::cout << "Extracting ";
     for (int g : goal) {
         std::cout << g << ", ";
     }
-    std::cout << std::endl;
-    */
+    std::cout << "in layer " << layer << std::endl;
+    
 
     // Trivial success
     if (layer == 0) {
@@ -458,7 +469,7 @@ int Planner::gpSearch(std::list<int> goal, std::list<int> actions, int layer, st
         return 1;
     }
 
-    // TODO: select one
+    // TODO: select one possibly in a different way
     int p = goal.front();
 
     // Get providers (actions) of p
@@ -479,7 +490,12 @@ int Planner::gpSearch(std::list<int> goal, std::list<int> actions, int layer, st
 
         // Add provider
         if (!mut) {
-            providers.push_back(provider);
+            // Hack: Add "keep" actions to the back and others to the front, so they get chosen first
+            if (provider >= problem->countPropositions) {
+                providers.push_front(provider);
+            } else {
+                providers.push_back(provider);
+            }
         }
     }
 
@@ -489,6 +505,7 @@ int Planner::gpSearch(std::list<int> goal, std::list<int> actions, int layer, st
     // TODO: choose one
     // Add a providing action
     //int a = providers.front();
+    /* // Choose a single action randomly
     int a = 0;
     int rnd = rand();
     int randIndex = rnd % providers.size();
@@ -501,10 +518,38 @@ int Planner::gpSearch(std::list<int> goal, std::list<int> actions, int layer, st
         }
         counter++;
     }
-    
-    actions.push_back(a);
 
+    actions.push_back(a);
+    */
     
+    /* Select provider for chosen proposition. Non-deterministic choice point (=> Backtrack here)
+     * Simple method: Just try every provider one after another
+     * TODO: Parallelize here
+     */
+    for (int prov : providers) {
+        // Copy goal and action list for next recursive call
+        std::list<int> newGoal(goal);
+        std::list<int> newActions(actions);
+
+        // Add action to action list
+        newActions.push_back(prov);
+
+        // Remove action effects from goal list
+        int first = problem->actionPosEffIndices[prov];
+        unsigned int last = problem->actionPosEffIndices[prov+1] - 1;
+        for (std::vector<int>::size_type i = first; i <= last; i++) {
+            newGoal.remove(problem->actionPosEffEdges[i]);
+        }
+
+        // Call recursively
+        int success = gpSearch(newGoal, newActions, layer, plan);
+
+        if (success) return success;
+    }
+
+    return 0;
+    
+    /*
     // Remove action effects from goal list
     int first = problem->actionPosEffIndices[a];
     unsigned int last = problem->actionPosEffIndices[a+1] - 1;
@@ -514,5 +559,6 @@ int Planner::gpSearch(std::list<int> goal, std::list<int> actions, int layer, st
 
     // Call recursively
     return gpSearch(goal, actions, layer, plan);
+    */
 }
 
