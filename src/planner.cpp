@@ -60,7 +60,8 @@ void Planner::addNogood(int layer, std::list<int> props) {
     // Push a 0 for separating nogoods
     nogoods[layer].push_back(0);
 
-    countNogoods++;
+    //countNogoods++;
+    countNogoods[layer]++;
 }
 
 /**
@@ -138,9 +139,11 @@ int Planner::graphplan(std::list<std::list<int>>& plan) {
 
     int success = extract(goal, layer, plan);
 
+    // Keep track of how many nogoods exist, so we can determine if any are added during an iteration
+    int lastNogoodCount = 0;
+
     while(!success) {
         // Expand for one more layer
-        //getchar();
         std::cout << "Layer " << layer << std::endl;
         if (!fixedPoint) {
             layer++;
@@ -155,7 +158,10 @@ int Planner::graphplan(std::list<std::list<int>>& plan) {
         success = extract(goal, layer, plan);
 
         if ((!success) && fixedPoint) {
-            // TODO: Check if nogood table not growing -> no plan
+            if (lastNogoodCount == countNogoods[layer]) {
+                return 0;
+            }
+            lastNogoodCount = countNogoods[layer];
         }
     }
 
@@ -193,6 +199,9 @@ void Planner::expand() {
         updateNewLayerMutexes(currentPropLayer);
         return;
     }
+
+    // No nogoods for this layer yet
+    countNogoods.push_back(0);
 
     // Add a new entry in the layerPropMutexCount vector to see if we reached a
     // fixed-point level
