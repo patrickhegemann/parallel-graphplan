@@ -14,7 +14,7 @@
 class SASParser {
     public:
         SASParser();
-        Problem* parse(char *filename);
+        Problem* parse(const char *filename);
         
     private:
         // State

@@ -7,6 +7,7 @@
 
 #include "parser.h"
 #include "problem.h"
+#include "Logger.h"
 
 
 // Define the strings that mark sections in the SAS file
@@ -39,7 +40,7 @@ SASParser::SASParser() {}
 /**
  * Parse a file and output problem struct
  */
-Problem* SASParser::parse(char *filename) {
+Problem* SASParser::parse(const char *filename) {
     // Initialize Problem struct
     problem = new Problem();
 
@@ -75,7 +76,7 @@ Problem* SASParser::parse(char *filename) {
  */
 void SASParser::nextLine() {
     if (!std::getline(file, curLine)) {
-        // error handling
+        error("Unexpected EOF");
     }
 }
 
@@ -83,7 +84,7 @@ void SASParser::nextLine() {
  * Outputs errors
  */
 void SASParser::error(std::string err) {
-    std::cout << "Parser Error: " << err << std::endl;
+    exitError("Parser Error: %s\n", err.c_str());
 }
 
 // ----------------------------------------------------------------------------
@@ -233,7 +234,7 @@ void SASParser::metric() {
     // If there are action costs, inform that we are going to ignore them
     if (!accept("0")) {
         acceptAnyLine();
-        std::cout << "WARNING: Problem has action costs, but they will be ignored." << std::endl;
+        log(1, "WARNING: Problem has action costs, but they will be ignored.\n");
     }
 
     expect(METRIC_FOOTER);
@@ -507,7 +508,7 @@ void SASParser::operatorEffect(int operatorNumber) {
 
     // For STRIPS, there are usually no effect conditions
     if (countEffConditions != 0) {
-        std::cout << "WARNING: amount of effect conditions is not zero!" << std::endl;
+        log(1, "WARNING: amount of effect conditions is not zero!\n");
     }
 
     for (int i = 0; i < countEffConditions; i++) {
@@ -538,17 +539,6 @@ void SASParser::operatorEffect(int operatorNumber) {
     int postProp = varFirstProps[variable] + postValue;
     problem->actionPosEffEdges.push_back(postProp);
     problem->propPosActions[postProp].push_back(operatorNumber);
-    
-    /*
-    std::cout << "xyz " << postProp << " ab " << problem->propPosActions[postProp].size();
-    std::cout << std::endl;
-    */
-
-    /*
-    std::cout << "Operator " << problem->actionNames[operatorNumber] << " sets ";
-    std::cout << "variable " << variable << " from " << preValue << " to " << postValue;
-    std::cout << std::endl;
-    */
 }
 
 

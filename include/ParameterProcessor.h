@@ -89,6 +89,9 @@ public:
 		if (isSet(name)) {
 			return params[name];
 		} else {
+            // Add default value to map, so it gets printed with printParams
+            // Useful especially when default values change sometime
+            setParam(name.c_str(), defaultValue.c_str());
 			return defaultValue;
 		}
 	}
@@ -101,6 +104,9 @@ public:
 		if (isSet(name)) {
 			return atoi(params[name].c_str());
 		} else {
+            // Add default value to map, so it gets printed with printParams
+            // Useful especially when default values change sometime
+            setParam(name.c_str(), to_string(defaultValue).c_str());
 			return defaultValue;
 		}
 	}

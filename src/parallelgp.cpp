@@ -10,130 +10,87 @@
 #include <string>
 #include <list>
 
+#include "parallelgp.h"
 
 #include "problem.h"
 #include "parser.h"
 #include "planner.h"
 #include "planVerifier.h"
-
+#include "Settings.h"
+#include "Logger.h"
 
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        std::cout << "No input .sas file given\n";
-        exit(1);
+    // Get command line arguments
+    Settings settings(argc, (char**)argv);
+
+    setVerbosityLevel(settings.getVerbosityLevel());
+    if (settings.getInputFile() == nullptr) {
+        exitError("No input file given\n");
     }
 
     // Parse input file
-    
-    std::cout << "Parsing ... ";
-    
-    char *inputFile = argv[1];
-    SASParser *parser = new SASParser();
-    Problem *problem = parser->parse(inputFile);
-    delete parser;
+    log(1, "Parsing...\n");
+    SASParser parser;
+    Problem *problem = parser.parse(settings.getInputFile());
+    log(1, "Parsing done\n");
 
-    std::cout << "DONE" << std::endl;
+    // Find a plan, then verify and print it
+    std::list<std::list<int>> plan;
+    if (findPlan(problem, plan)) {
+        printPlan(problem, plan);
+        verifyPlan(problem, plan);
+    }
 
-    // ========================================================================
+    return 0;
+}
 
-    std::cout << "Searching plan ... ";
+int findPlan(Problem *problem, std::list<std::list<int>>& plan) {
+    log(1, "Searching plan...\n");
 
     // Call planner
-    Planner *planner = new Planner(problem);
-    std::list<std::list<int>> plan;
-    int success = planner->graphplan(plan);
+    Planner planner(problem);
+    int success = planner.graphplan(plan);
 
     // No plan
     if (!success) {
-        std::cout << "No plan found" << std::endl;
+        log(0, "No plan found\n");
         return 0;
     }
 
-    std::cout << "Plan found!" << std::endl;
+    // Plan found
+    log(1, "Plan found!\n");
+    return 1;
+}
 
-    delete planner;
+int verifyPlan(Problem *problem, std::list<std::list<int>> plan) {
+    log(1, "Verifying plan...\n");
 
-    // ========================================================================
-
-    /*
-    for (int i : problem->lastActionIndices) {
-        std::cout << i << "a ";
-    }
-    std::cout << std::endl;
-
-    for (int i : problem->lastPropIndices) {
-        std::cout << i << "p ";
-    }
-    std::cout << std::endl;
-    */
-
-    // Output plan (long version)
-    /*
-    int layerNumber = 1;
-    for (auto const& layer : plan) {
-        std::cout << "Actions in layer " << layerNumber << ":" << std::endl;
-        for (auto const& action : layer) {
-            std::cout << "\t" << problem->actionNames[action] << std::endl;
-            
-            */
-            /*
-            std::cout << "\t\t";
-            for (int k = problem->actionPrecIndices[action];
-                    k < problem->actionPrecIndices[action+1]; k++) {
-                std::cout << "." << problem->propNames[problem->actionPrecEdges[k]] << " ";
-            }
-            std::cout << std::endl;
-
-            std::cout << "\t\t";
-            for (int k = problem->actionPosEffIndices[action];
-                    k < problem->actionPosEffIndices[action+1]; k++) {
-                std::cout << "+" << problem->propNames[problem->actionPosEffEdges[k]] << " ";
-            }
-            std::cout << std::endl;
-
-            std::cout << "\t\t";
-            for (int k = problem->actionNegEffIndices[action];
-                    k < problem->actionNegEffIndices[action+1]; k++) {
-                std::cout << "-" << problem->propNames[problem->actionNegEffEdges[k]] << " ";
-            }
-            std::cout << std::endl;
-            */
-            /*
-        }
-        std::cout << "--------------------" << std::endl;
-        layerNumber++;
-    }
-    */
-
-    // ========================================================================
-
-    // Output plan (short version)
-    int step = 0;
-    std::cout << std::endl << "step";
-    for (auto layer : plan) {
-        for (auto action : layer) {
-            if (action >= problem->countPropositions) {
-                std::cout << "\t" << step << " : " << problem->actionNames[action] << std::endl;
-                step++;
-            }
-        }
-    }
-    std::cout << std::endl;
-
-    // ========================================================================
-
-    std::cout << "Verifying plan ... ";
     PlanVerifier ver(problem, plan);
     int planValid = ver.verify();
 
     if (planValid) {
-        std::cout << "Plan OK";
+        log(1, "Plan OK\n");
     } else {
-        std::cout << "Plan INVALID";
+        exitError("Plan INVALID\n");
     }
-    std::cout << std::endl;
 
-    return 0;
+    return planValid;
+}
+
+void printPlan(Problem *problem, std::list<std::list<int>> plan) {
+    // Output plan (short version)
+    int layerNumber = 0;
+    int step = 0;
+    log(0, "LAYER\tSTEP\tACTION\n");
+    for (auto layer : plan) {
+        for (auto action : layer) {
+            if (action >= problem->countPropositions) {
+                log(0, "%d\t%d\t%s\n", layerNumber, step, problem->actionNames[action].c_str());
+                step++;
+            }
+        }
+        layerNumber++;
+    }
 }
 

@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "planner.h"
+#include "Logger.h"
 
 
 Planner::Planner(Problem *problem) {
@@ -15,8 +16,6 @@ int Planner::isNogood(int layer, std::list<int> props) {
     if (nogoods.size() <= (unsigned int) layer) return false;
 
     unsigned int propsFoundInNogood = 0;
-
-    //std::cout << "layer " << layer << std::endl;
 
     for (unsigned int i = 0; i < nogoods[layer].size(); i++) {
         int p = nogoods[layer][i];
@@ -42,11 +41,14 @@ int Planner::isNogood(int layer, std::list<int> props) {
 }
 
 void Planner::addNogood(int layer, std::list<int> props) {
+    //TODO: Proper logging
+    /*
     std::cout << "New nogood in layer " << layer << ": ";
     for (int p : props) {
         std::cout << p << ", ";
     }
     std::cout << std::endl;
+    */
 
     // Add vectors to the nogood table until we have sufficiently many layers
     while (nogoods.size() <= (unsigned int) layer) {
@@ -60,7 +62,6 @@ void Planner::addNogood(int layer, std::list<int> props) {
     // Push a 0 for separating nogoods
     nogoods[layer].push_back(0);
 
-    //countNogoods++;
     countNogoods[layer]++;
 }
 
@@ -144,7 +145,7 @@ int Planner::graphplan(std::list<std::list<int>>& plan) {
 
     while(!success) {
         // Expand for one more layer
-        std::cout << "Layer " << layer << std::endl;
+        // TODO: Proper logging -- std::cout << "Layer " << layer << std::endl;
         if (!fixedPoint) {
             layer++;
             expand();
@@ -165,13 +166,12 @@ int Planner::graphplan(std::list<std::list<int>>& plan) {
         }
     }
 
-    //plan = p;
-    std::cout << "Final number of layers: " << layer << std::endl;
+    // TODO: Proper logging -- std::cout << "Final number of layers: " << layer << std::endl;
     return success;
 }
 
 void Planner::expand() {
-    //std::cout << "Expanding graph" << std::endl;
+    log(2, "Expanding graph\n");
     
     // TODO: make layer a property of the planner so this doesn't have to be so ugly
     // Note that we always generate an action layer number (i) and a prop layer (i+1)
@@ -191,7 +191,6 @@ void Planner::expand() {
     problem->lastPropIndices.push_back(currentLastPropIndex);
     problem->lastActionIndices.push_back(currentLastActionIndex);
 
-    // TODO: Remove this because we won't expand past the fixed point
     // If we reached a fixed point we don't need to do anything else.
     // No adding of actions or propositions needed, since those will be carried
     // over implicitly.
@@ -269,20 +268,6 @@ void Planner::expand() {
     }
 
     updateNewLayerMutexes(currentPropLayer);
-
-    // debug:
-    /*
-    std::cout << "Enabled actions: " << std::endl;
-    for (int i = 0; i <= problem->lastActionIndices.back(); i++) {
-        std::cout << "\t" << problem->actionNames[problem->layerActions[i]] << std::endl;
-    }
-    std::cout << std::endl;
-    std::cout << "Enabled propositions: ";
-    for (int i = 0; i <= problem->lastPropIndices.back(); i++) {
-        std::cout << problem->layerProps[i] << ", ";
-    }
-    std::cout << std::endl;
-    */
 }
 
 /**
@@ -411,13 +396,20 @@ int Planner::checkActionPrecsMutex(int a, int b, int layer) {
 
 
 int Planner::extract(std::list<int> goal, int layer, std::list<std::list<int>>& plan) {
-    std::cout << "Extracting ";
-    for (int g : goal) {
-        std::cout << g << ", ";
+    log(2, "Extracting\n");
+    /*
+    if (verbosityLevelSetting >= 3) {
+        for (int g : goal) {
+            //log(2, "%d, ", g);
+            std::cout << g << ", ";
+        }
+        //log(2, "in layer %d\n", layer);
+        std::cout << "in layer " << layer << std::endl;
+    } else {
+        std::cout << std::endl;
     }
-    std::cout << "in layer " << layer << std::endl;
+    */
     
-
     // Trivial success
     if (layer == 0) {
         return 1;
@@ -443,7 +435,7 @@ int Planner::extract(std::list<int> goal, int layer, std::list<std::list<int>>& 
 }
 
 int Planner::gpSearch(std::list<int> goal, std::list<int> actions, int layer, std::list<std::list<int>>& plan) {
-    //std::cout << "Performing gpSearch" << std::endl;
+    log(2, "Performing gpSearch\n");
 
     /*
     for (int g : goal) {
@@ -458,9 +450,7 @@ int Planner::gpSearch(std::list<int> goal, std::list<int> actions, int layer, st
     if (goal.empty()) {
         // Extract plan for preconditions of chosen actions
         std::list<int> preconds;
-        //for (std::vector<int>::size_type i = 0; i < actions.size(); i++) {
         for (int a : actions) {
-            //int a = actions[i];
             int first = problem->actionPrecIndices[a];
             unsigned int last = problem->actionPrecIndices[a+1] - 1;
             for (std::vector<int>::size_type j = first; j <= last; j++) {
@@ -511,26 +501,8 @@ int Planner::gpSearch(std::list<int> goal, std::list<int> actions, int layer, st
     // No providers for goal => no plan
     if (providers.empty()) return 0;
     
-    // TODO: choose one
     // Add a providing action
-    //int a = providers.front();
-    /* // Choose a single action randomly
-    int a = 0;
-    int rnd = rand();
-    int randIndex = rnd % providers.size();
-    // std::cout << "RANDOM " << rnd << " % " << providers.size() << "=" << randIndex << std::endl;
-    int counter = 0;
-    for (int i : providers) {
-        if (counter == randIndex) {
-            a = i;
-            break;
-        }
-        counter++;
-    }
-
-    actions.push_back(a);
-    */
-    
+    // TODO: choose one
     /* Select provider for chosen proposition. Non-deterministic choice point (=> Backtrack here)
      * Simple method: Just try every provider one after another
      * TODO: Parallelize here
@@ -557,17 +529,5 @@ int Planner::gpSearch(std::list<int> goal, std::list<int> actions, int layer, st
     }
 
     return 0;
-    
-    /*
-    // Remove action effects from goal list
-    int first = problem->actionPosEffIndices[a];
-    unsigned int last = problem->actionPosEffIndices[a+1] - 1;
-    for (std::vector<int>::size_type i = first; i <= last; i++) {
-        goal.remove(problem->actionPosEffEdges[i]);
-    }
-
-    // Call recursively
-    return gpSearch(goal, actions, layer, plan);
-    */
 }
 
