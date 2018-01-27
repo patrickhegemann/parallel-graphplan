@@ -79,6 +79,7 @@ int Planner::checkFixedPoint() {
 
     if (*lastLastPropIndex == *(std::prev(lastLastPropIndex)) &&
             *lastLayerPropMutexCount == *(std::prev(lastLayerPropMutexCount))) {
+        log(1, "Fixed point reached\n");
         return true;
     }
 
@@ -99,7 +100,10 @@ int Planner::checkFixedPoint() {
 int Planner::checkGoalUnreachable(int layer) {
     // Check if all goals are enabled already. If not, return true.
     for (auto const& goal: problem->goalPropositions) {
-        if (!problem->propEnabled[goal]) return true;
+        if (!problem->propEnabled[goal]) {
+            log(2, "Not all goal propositions enabled yet\n");
+            return true;
+        }
     }
 
     // Check if any pair of goals is mutex in the current layer. If so, return true.
@@ -108,6 +112,7 @@ int Planner::checkGoalUnreachable(int layer) {
             int goal1 = problem->goalPropositions[i];
             int goal2 = problem->goalPropositions[j];
             if (getPropMutex(problem, goal1, goal2, layer)) {
+                log(2, "Pair of goals still mutex: %d, %d\n", goal1, goal2);
                 return true;
             }
         }
@@ -133,7 +138,10 @@ int Planner::graphplan(std::list<std::list<int>>& plan) {
         fixedPoint = fixedPoint || checkFixedPoint();
         // If goal is impossible to reach, this problem has no solution
     }
-    if (checkGoalUnreachable(layer)) return false;
+    if (checkGoalUnreachable(layer)) {
+        log(1, "Goal unreachable, aborting\n");
+        return false;
+    }
 
     std::list<int> goal(problem->goalPropositions.begin(),
             problem->goalPropositions.end());
