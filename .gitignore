@@ -1,2 +1,3 @@
 bin/
 testing/output.sas
+**/__pycache__/
