@@ -1,37 +1,37 @@
-#ifndef parser_h
-#define parser_h
+#ifndef _PARSER_H 
+#define _PARSER_H
 
 #include <string>
 #include <sstream>
 #include <fstream>
 #include <vector>
 
-#include "problem.h"
+#include "PlanningProblem.h"
 
 /**
  * Recursive descent parser for SAS as output by FastDownward
+ *
+ * Author: Patrick Hegemann
  */
 class SASParser {
     public:
         SASParser();
-        Problem* parse(const char *filename);
+        IPlanningProblem* parse(const char *filename);
         
     private:
         // State
-        Problem *problem;
+        IPlanningProblem::Builder problemBuilder;
+        int countVariables;
+        std::vector<int> variableDomainSizes;
+        std::vector<std::string> variableNames;
 
+        // I/O
         std::ifstream file;
         std::string curLine;    // Current line
 
         std::stringstream lineStream;
         std::string curToken;   // Current token (if a line contains multiple ints)
 
-        // Ranges of each variable. This is needed to translate variables and
-        // their values to propositions
-        int countVariables;
-        std::vector<int> varFirstProps;
-
-        
         // Basic Parser functions
         void nextLine();
         void error(std::string err);
@@ -62,9 +62,7 @@ class SASParser {
         void axioms();
 
         // Methods for operator details
-        void singleOperator(int operatorNumber);
         void operatorEffect(int operatorNumber);
-
 };
 
 #endif

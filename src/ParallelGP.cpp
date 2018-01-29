@@ -10,14 +10,16 @@
 #include <string>
 #include <list>
 
-#include "parallelgp.h"
-
-#include "problem.h"
-#include "parser.h"
-#include "planner.h"
-#include "planVerifier.h"
+#include "common.h"
+#include "Plan.h"
+#include "PlanningProblem.h"
+#include "Parser.h"
+#include "Planner.h"
+#include "PlanVerifier.h"
 #include "Settings.h"
 #include "Logger.h"
+
+#include "ParallelGP.h"
 
 
 int main(int argc, char *argv[]) {
@@ -32,11 +34,11 @@ int main(int argc, char *argv[]) {
     // Parse input file
     log(1, "Parsing...\n");
     SASParser parser;
-    Problem *problem = parser.parse(settings.getInputFile());
+    IPlanningProblem *problem = parser.parse(settings.getInputFile());
     log(1, "Parsing done\n");
 
     // Find a plan, then verify and print it
-    std::list<std::list<int>> plan;
+    Plan plan;
     if (findPlan(problem, plan)) {
         printPlan(problem, plan);
         verifyPlan(problem, plan);
@@ -45,7 +47,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-int findPlan(Problem *problem, std::list<std::list<int>>& plan) {
+int findPlan(IPlanningProblem *problem, Plan& plan) {
     log(1, "Searching plan...\n");
 
     // Call planner
@@ -63,7 +65,7 @@ int findPlan(Problem *problem, std::list<std::list<int>>& plan) {
     return 1;
 }
 
-int verifyPlan(Problem *problem, std::list<std::list<int>> plan) {
+int verifyPlan(IPlanningProblem *problem, Plan plan) {
     log(1, "Verifying plan...\n");
 
     PlanVerifier ver(problem, plan);
@@ -78,19 +80,18 @@ int verifyPlan(Problem *problem, std::list<std::list<int>> plan) {
     return planValid;
 }
 
-void printPlan(Problem *problem, std::list<std::list<int>> plan) {
+void printPlan(IPlanningProblem *problem, Plan plan) {
     // Output plan (short version)
-    int layerNumber = 0;
     int step = 0;
     log(0, "LAYER\tSTEP\tACTION\n");
-    for (auto layer : plan) {
-        for (auto action : layer) {
-            if (action >= problem->countPropositions) {
-                log(0, "%d\t%d\t%s\n", layerNumber, step, problem->actionNames[action].c_str());
+    for (int layerNumber = 0; layerNumber < plan.getLayerCount(); layerNumber++) {
+        std::list<Action> layer = plan.getLayerActions(layerNumber);
+        for (Action action : layer) {
+            if (!problem->isTrivialAction(action))  {
+                log(0, "%d\t%d\t%s\n", layerNumber, step, problem->getActionName(action).c_str());
                 step++;
             }
         }
-        layerNumber++;
     }
 }
 

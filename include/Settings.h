@@ -1,5 +1,5 @@
-#ifndef SETTINGS_H
-#define SETTINGS_H
+#ifndef _PARALLELGP_SETTINGS_H
+#define _PARALLELGP_SETTINGS_H
 
 
 class Settings {
@@ -14,5 +14,5 @@ class Settings {
         const char* getInputFile();
 };
 
-#endif
+#endif /* _PARALLELGP_SETTINGS_H */
 
