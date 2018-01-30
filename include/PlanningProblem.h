@@ -30,6 +30,7 @@ class PlanningProblem : public IPlanningProblem {
         std::list<Proposition> getActionNegEffects(Action a);
         std::list<Action> getPropPosActions(Proposition p);
         
+        int getFirstLayer();
         int getLastLayer();
         int getLastActionLayer();
         int addPropositionLayer();
@@ -59,7 +60,12 @@ class PlanningProblem : public IPlanningProblem {
         int isTrivialAction(Action a);
     
     private:
+        // Amount of variables in the problem
         int countVariables;
+        // Size of each variable domain
+        std::vector<int> variableDomainSize;
+
+        // Amount of actions defined in the problem
         int countActions;
 
         // List of goal propositions
@@ -82,7 +88,7 @@ class PlanningProblem : public IPlanningProblem {
         // Positive effect edges from positive effects to actions
         // This is needed when determining proposition mutexes
         // Implemented as an adjacency list
-        std::vector<std::list<int>> propPosActions;
+        std::map<Proposition, std::list<Action>> propPosActions;
 
         // Mutexes, here implemented as matrixes. The matrix entries specify the
         // *last* layer in which the propositions/actions are mutex with each other
@@ -119,12 +125,15 @@ class PlanningProblem::Builder : public IPlanningProblem::Builder {
         ~Builder() {}
         PlanningProblem* build();
         void setVariableCount(int count);
+        Variable addVariable();
+        void setVariableDomainSize(Variable v, int size);
         void setPropositionName(Proposition p, std::string name);
+        void finalizeVariables();
         void setGlobalPropMutex(Proposition p, Proposition q);
         void addIntialProposition(Proposition p);
         void addGoalProposition(Proposition p);
-        void setActionCount(int count);
 
+        void setActionCount(int count);
         Action addAction();
         void setActionName(Action a, std::string name);
         void addActionPrecondition(Action a, Proposition p);
@@ -133,6 +142,11 @@ class PlanningProblem::Builder : public IPlanningProblem::Builder {
 
     private:
         PlanningProblem* problem;
+        int nextVariable = 0;
+        int nextAction = 0;
+
+        int variablesFinalized = 0;
+        int totalPropositionCount = 0;
 };
 
 

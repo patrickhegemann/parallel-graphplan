@@ -28,17 +28,23 @@ class IPlanningProblem {
                 
                 // Sets the amount of variables in the planning problem
                 virtual void setVariableCount(int count) =0;
+                // Adds a variable to the problem and returns its number
+                virtual Variable addVariable() =0;
+                // Sets the size of a variable's domain (i.e. how many different values it could take)
+                virtual void setVariableDomainSize(Variable v, int size) =0;
                 // Sets the name of a proposition
                 virtual void setPropositionName(Proposition p, std::string name) =0;
+                // Finalize variables, i.e. create data structures that can't be resized later
+                virtual void finalizeVariables() =0;
                 // Sets two propositions mutex in every layer
                 virtual void setGlobalPropMutex(Proposition p, Proposition q) =0;
                 // Adds an initial proposition
                 virtual void addIntialProposition(Proposition p) =0;
                 // Adds a goal proposition
                 virtual void addGoalProposition(Proposition p) =0;
+
                 // Sets the amount of actions
                 virtual void setActionCount(int count) =0;
-
                 // Adds an action to the problem (and returns its number)
                 virtual Action addAction() =0;
                 // Sets the name of an action
@@ -69,6 +75,8 @@ class IPlanningProblem {
         // Gets a list of actions that have the proposition as a positive effect
         virtual std::list<Action> getPropPosActions(Proposition p) =0;
 
+        // Gets the number of the first proposition layer
+        virtual int getFirstLayer() =0;
         // Gets the number of the last proposition layer
         virtual int getLastLayer() =0;
         // Gets the number of the last action layer
@@ -89,7 +97,6 @@ class IPlanningProblem {
         // Activates the given action in the given layer
         virtual void activateAction(Action a, int layer) =0;
         // Activates the given proposition in the given layer
-        // (TODO: Mabye not necessary, can be done in activateAction()?)
         virtual void activateProposition(Proposition p, int layer) =0;
 
         // Gets a list of propositions in a given layer

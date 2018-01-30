@@ -49,7 +49,6 @@ IPlanningProblem* SASParser::parse(const char *filename) {
     // TODO: maybe modify this so it takes a stringstream
     // Prepare file stream
     file.open(filename);
-    std::cout << filename << std::endl;
     if (!file.is_open()) {
         error("SAS file could not be opened");
         return nullptr;
@@ -262,6 +261,8 @@ void SASParser::variables() {
     variableDomainSizes.resize(countVariables);
 
     for (int i = 0; i < countVariables; i++) {
+        Variable v = problemBuilder->addVariable();
+
         expect(VARIABLE_HEADER);
         // Variable name (mostly useless, so we will skip it)
         acceptAnyLine();
@@ -270,14 +271,17 @@ void SASParser::variables() {
 
         // Domain size of the variable
         variableDomainSizes[i] = acceptAnyInt();
+        problemBuilder->setVariableDomainSize(v, variableDomainSizes[i]);
 
         // Proposition names
         for (int j = 0; j < variableDomainSizes[i]; j++) {
-            problemBuilder->setPropositionName(Proposition(i, j), acceptAnyLine());
+            problemBuilder->setPropositionName(Proposition(v, j), acceptAnyLine());
         }
 
         expect(VARIABLE_FOOTER);
     }
+
+    problemBuilder->finalizeVariables();
 }
 
 
@@ -328,25 +332,12 @@ void SASParser::mutexes() {
 void SASParser::initialstate() {
     log(2, "Parsing initial state section\n");
 
-    // Initialize problem vectors
-    //TODO: Move to PlanningProblem class constructor
-    //problem->propEnabled.resize(problem->countPropositions, 0);
-    //problem->layerProps.reserve(problem->countPropositions);
-    //problem->lastPropIndices.push_back(countVariables-1);
-
     expect(INITIALSTATE_HEADER);
     
     // Parse initial variable states
     for (int variable = 0; variable < countVariables; variable++) {
         int value = acceptAnyInt();
         problemBuilder->addIntialProposition(Proposition(variable, value));
-        //TODO: Move this stuff to PlanningProblem
-        // Update problem:
-        // Enable the specified proposition
-        //problem->propEnabled[prop] = 1;
-        // Put the proposition in the next spot of the layerProps array,
-        // indicating that the proposition exists now in the planning graph
-        //problem->layerProps[i] = prop;
     }
 
     expect(INITIALSTATE_FOOTER);
@@ -362,7 +353,6 @@ void SASParser::goalstate() {
     expect(GOALSTATE_HEADER);
     
     int countGoalProps = acceptAnyInt();
-    //problem->goalPropositions.resize(countGoalProps);
     
     for (int i = 0; i < countGoalProps; i++) {
         // Tokenize this line and read individual tokens
@@ -370,8 +360,6 @@ void SASParser::goalstate() {
         int variable, value;
         expectVarValuePair(&variable, &value);
 
-        // TODO: Move to PlanningProblem::Builder
-        //problem->goalPropositions[i] = prop;
         problemBuilder->addGoalProposition(Proposition(variable, value));
     }
     
@@ -389,63 +377,14 @@ void SASParser::operators() {
     int countOperators = acceptAnyInt(); // + problem->countPropositions;
     problemBuilder->setActionCount(countOperators);
 
-    // TODO: Move all this to the PlanningProblem builder
-    // Initialize problem data structure
-    /*
-    problem->actionPrecIndices.resize(countOperators+1);
-    problem->actionPosEffIndices.resize(countOperators+1);
-    problem->actionNegEffIndices.resize(countOperators+1);
-    problem->propPosActions.resize(problem->countPropositions);
-    problem->actionEnabled.resize(countOperators, 0);
-    problem->actionFirstLayer.resize(countOperators);
-    problem->layerActions.resize(countOperators);
-    problem->actionNames.reserve(countOperators);
-    problem->actionMutexes = new int[countOperators*countOperators];
-    */
-
-    // Trivial actions
-    // TODO: Move to PlanningProblem builder
-    /*
-    for (int i = 0; i < problem->countPropositions; i++) {
-        // Adjacency array indices
-        problem->actionPrecIndices[i] = i;
-        problem->actionPosEffIndices[i] = i;
-        problem->actionNegEffIndices[i] = 0;
-
-        // Edges
-        problem->actionPrecEdges.push_back(i);
-        problem->actionPosEffEdges.push_back(i);
-        problem->propPosActions[i].push_back(i);
-
-        // Already enabled? Depends on initial state
-        //problem->actionEnabled[i] = problem->propEnabled[i];
-        //if (problem->actionEnabled[i]) {
-        //    problem->layerActions.push_back(i);
-        //}
-
-        //problem->actionNames[i] = ("Noop " + std::to_string(i));
-        problem->actionNames[i] = ("Keep " + problem->propNames[i]);
-    }
-    */
-
     // Parse actions
-    //for (int i = problem->countPropositions; i < countOperators; i++) {
     for (int i = 0; i < countOperators; i++) {
         expect(OPERATION_HEADER);
 
         Action action = problemBuilder->addAction();
 
         // Get operator name
-        //problem->actionNames[operatorNumber] = acceptAnyLine();
         problemBuilder->setActionName(action, acceptAnyLine());
-
-        // Update basic graph structure of problem
-        // TODO: Move to builder
-        /*
-           problem->actionPrecIndices[operatorNumber] = problem->actionPrecEdges.size();
-           problem->actionPosEffIndices[operatorNumber] = problem->actionPosEffEdges.size();
-           problem->actionNegEffIndices[operatorNumber] = problem->actionNegEffEdges.size();
-           */
 
         // Prevail conditions
         int countPrevailConditions = acceptAnyInt();
@@ -456,13 +395,6 @@ void SASParser::operators() {
 
             problemBuilder->addActionPrecondition(action, Proposition(variable, value));
             problemBuilder->addActionPosEffect(action, Proposition(variable, value));
-            /* TODO: Move to builder
-            // Add prevail conditions as precondition and positive effect!
-            problem->actionPrecEdges.push_back(prop);
-            problem->actionPosEffEdges.push_back(prop);
-            // Also register the positive effect for the proposition
-            problem->propPosActions[prop].push_back(operatorNumber);
-            */
         }
 
         // Effects
@@ -474,19 +406,10 @@ void SASParser::operators() {
 
         // Operator cost (we don't expect this to play a role, since we only expect
         // "metric" problems)
-        //acceptAnyInt();
         acceptAnyLine();
 
         expect(OPERATION_FOOTER);
     }
-
-    // Prepare an additional last element for the adjacency arrays
-    // TODO: Move to planning problem builder
-    /*
-    problem->actionPrecIndices[problem->countActions] = problem->actionPrecEdges.size();
-    problem->actionPosEffIndices[problem->countActions] = problem->actionPosEffEdges.size();
-    problem->actionNegEffIndices[problem->countActions] = problem->actionNegEffEdges.size();
-    */
 }
 
 
@@ -516,19 +439,11 @@ void SASParser::operatorEffect(Action action) {
     // If the effect needs the variable to have a certain value, then
     // add that as both a precondition and a negative effect
     if (preValue != -1) {
-        /* TODO: Move to builder
-        problem->actionPrecEdges.push_back(preProp);
-        problem->actionNegEffEdges.push_back(preProp);
-        */
         problemBuilder->addActionPrecondition(action, Proposition(variable, preValue));
         problemBuilder->addActionNegEffect(action, Proposition(variable, preValue));
     }
 
     // Add positive effect for both action and variable
-    /* TODO: Move to builder
-    problem->actionPosEffEdges.push_back(postProp);
-    problem->propPosActions[postProp].push_back(operatorNumber);
-    */
     problemBuilder->addActionPosEffect(action, Proposition(variable, postValue));
 }
 
