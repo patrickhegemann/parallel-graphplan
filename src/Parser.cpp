@@ -2,7 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <climits>
+#include <assert.h>
 
 #include "PlanningProblem.h"
 #include "Logger.h"
@@ -41,12 +41,15 @@ SASParser::SASParser() {}
  * Parse a file and output problem struct
  */
 IPlanningProblem* SASParser::parse(const char *filename) {
+    assert(problemBuilder != nullptr);
     // Initialize Planning Problem Builder
-    //PlanningProblem::Builder problemBuilder();
+    //PlanningProblem::Builder builder;
+    //problemBuilder = new PlanningProblem::Builder;
 
     // TODO: maybe modify this so it takes a stringstream
     // Prepare file stream
     file.open(filename);
+    std::cout << filename << std::endl;
     if (!file.is_open()) {
         error("SAS file could not be opened");
         return nullptr;
@@ -67,7 +70,12 @@ IPlanningProblem* SASParser::parse(const char *filename) {
 
     file.close();
 
-    return problemBuilder.build();
+    return problemBuilder->build();
+}
+
+
+void SASParser::setProblemBuilder(IPlanningProblem::Builder *builder) {
+    problemBuilder = builder;
 }
 
 
@@ -248,7 +256,7 @@ void SASParser::variables() {
     
     // Variable count in the problem
     countVariables = acceptAnyInt();
-    problemBuilder.setVariableCount(countVariables);
+    problemBuilder->setVariableCount(countVariables);
 
     // Keep track of how big each variable's domain is
     variableDomainSizes.resize(countVariables);
@@ -265,7 +273,7 @@ void SASParser::variables() {
 
         // Proposition names
         for (int j = 0; j < variableDomainSizes[i]; j++) {
-            problemBuilder.setPropositionName(Proposition(i, j), acceptAnyLine());
+            problemBuilder->setPropositionName(Proposition(i, j), acceptAnyLine());
         }
 
         expect(VARIABLE_FOOTER);
@@ -302,7 +310,7 @@ void SASParser::mutexes() {
 
             // Set these propositions mutex to each other in every layer
             for (int k = 0; k < j; k++) {
-                problemBuilder.setGlobalPropMutex(facts[j], facts[k]);
+                problemBuilder->setGlobalPropMutex(facts[j], facts[k]);
             }
         }
   
@@ -331,7 +339,7 @@ void SASParser::initialstate() {
     // Parse initial variable states
     for (int variable = 0; variable < countVariables; variable++) {
         int value = acceptAnyInt();
-        problemBuilder.addIntialProposition(Proposition(variable, value));
+        problemBuilder->addIntialProposition(Proposition(variable, value));
         //TODO: Move this stuff to PlanningProblem
         // Update problem:
         // Enable the specified proposition
@@ -364,7 +372,7 @@ void SASParser::goalstate() {
 
         // TODO: Move to PlanningProblem::Builder
         //problem->goalPropositions[i] = prop;
-        problemBuilder.addGoalProposition(Proposition(variable, value));
+        problemBuilder->addGoalProposition(Proposition(variable, value));
     }
     
     expect(GOALSTATE_FOOTER);
@@ -379,7 +387,7 @@ void SASParser::operators() {
 
     // Read and set action count
     int countOperators = acceptAnyInt(); // + problem->countPropositions;
-    problemBuilder.setActionCount(countOperators);
+    problemBuilder->setActionCount(countOperators);
 
     // TODO: Move all this to the PlanningProblem builder
     // Initialize problem data structure
@@ -425,11 +433,11 @@ void SASParser::operators() {
     for (int i = 0; i < countOperators; i++) {
         expect(OPERATION_HEADER);
 
-        Action action = problemBuilder.addAction();
+        Action action = problemBuilder->addAction();
 
         // Get operator name
         //problem->actionNames[operatorNumber] = acceptAnyLine();
-        problemBuilder.setActionName(action, acceptAnyLine());
+        problemBuilder->setActionName(action, acceptAnyLine());
 
         // Update basic graph structure of problem
         // TODO: Move to builder
@@ -446,8 +454,8 @@ void SASParser::operators() {
             int variable, value;
             expectVarValuePair(&variable, &value);
 
-            problemBuilder.addActionPrecondition(action, Proposition(variable, value));
-            problemBuilder.addActionPosEffect(action, Proposition(variable, value));
+            problemBuilder->addActionPrecondition(action, Proposition(variable, value));
+            problemBuilder->addActionPosEffect(action, Proposition(variable, value));
             /* TODO: Move to builder
             // Add prevail conditions as precondition and positive effect!
             problem->actionPrecEdges.push_back(prop);
@@ -512,8 +520,8 @@ void SASParser::operatorEffect(Action action) {
         problem->actionPrecEdges.push_back(preProp);
         problem->actionNegEffEdges.push_back(preProp);
         */
-        problemBuilder.addActionPrecondition(action, Proposition(variable, preValue));
-        problemBuilder.addActionNegEffect(action, Proposition(variable, preValue));
+        problemBuilder->addActionPrecondition(action, Proposition(variable, preValue));
+        problemBuilder->addActionNegEffect(action, Proposition(variable, preValue));
     }
 
     // Add positive effect for both action and variable
@@ -521,7 +529,7 @@ void SASParser::operatorEffect(Action action) {
     problem->actionPosEffEdges.push_back(postProp);
     problem->propPosActions[postProp].push_back(operatorNumber);
     */
-    problemBuilder.addActionPosEffect(action, Proposition(variable, postValue));
+    problemBuilder->addActionPosEffect(action, Proposition(variable, postValue));
 }
 
 

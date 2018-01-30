@@ -31,6 +31,9 @@ class PlanningProblem : public IPlanningProblem {
         std::list<Action> getPropPosActions(Proposition p);
         
         int getLastLayer();
+        int getLastActionLayer();
+        int addPropositionLayer();
+        int addActionLayer();
 
         // Propositions and actions in the planning graph
         int isPropEnabled(Proposition p);
@@ -56,7 +59,7 @@ class PlanningProblem : public IPlanningProblem {
         int isTrivialAction(Action a);
     
     private:
-        int countPropositions;
+        int countVariables;
         int countActions;
 
         // List of goal propositions
@@ -110,10 +113,23 @@ class PlanningProblem : public IPlanningProblem {
 
 
 // Builder class
-class PlanningProblem::Builder : IPlanningProblem::Builder {
+class PlanningProblem::Builder : public IPlanningProblem::Builder {
     public:
         Builder();
-        IPlanningProblem* build();
+        ~Builder() {}
+        PlanningProblem* build();
+        void setVariableCount(int count);
+        void setPropositionName(Proposition p, std::string name);
+        void setGlobalPropMutex(Proposition p, Proposition q);
+        void addIntialProposition(Proposition p);
+        void addGoalProposition(Proposition p);
+        void setActionCount(int count);
+
+        Action addAction();
+        void setActionName(Action a, std::string name);
+        void addActionPrecondition(Action a, Proposition p);
+        void addActionPosEffect(Action a, Proposition p);
+        void addActionNegEffect(Action a, Proposition p);
 
     private:
         PlanningProblem* problem;

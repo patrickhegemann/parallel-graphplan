@@ -34,6 +34,11 @@ int main(int argc, char *argv[]) {
     // Parse input file
     log(1, "Parsing...\n");
     SASParser parser;
+
+    // Switch between data structures here later
+    PlanningProblem::Builder builder;
+    parser.setProblemBuilder(&builder);
+
     IPlanningProblem *problem = parser.parse(settings.getInputFile());
     log(1, "Parsing done\n");
 

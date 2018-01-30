@@ -17,10 +17,11 @@ class SASParser {
     public:
         SASParser();
         IPlanningProblem* parse(const char *filename);
+        void setProblemBuilder(IPlanningProblem::Builder *builder);
         
     private:
         // State
-        IPlanningProblem::Builder problemBuilder;
+        IPlanningProblem::Builder *problemBuilder;
         int countVariables;
         std::vector<int> variableDomainSizes;
         std::vector<std::string> variableNames;

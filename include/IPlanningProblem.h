@@ -15,106 +15,109 @@
  */
 class IPlanningProblem {
     public:
-        virtual ~IPlanningProblem() {}
+        //virtual ~IPlanningProblem() {}
 
         // An builder interface for the planning problem class
         class Builder {
             public:
+                Builder() {}
                 virtual ~Builder() {}
-                virtual IPlanningProblem* build();
+
+                // Returns the built Planning Problem
+                virtual IPlanningProblem* build() =0;
                 
                 // Sets the amount of variables in the planning problem
-                virtual void setVariableCount(int count);
+                virtual void setVariableCount(int count) =0;
                 // Sets the name of a proposition
-                virtual void setPropositionName(Proposition p, std::string name);
+                virtual void setPropositionName(Proposition p, std::string name) =0;
                 // Sets two propositions mutex in every layer
-                virtual void setGlobalPropMutex(Proposition p, Proposition q);
+                virtual void setGlobalPropMutex(Proposition p, Proposition q) =0;
                 // Adds an initial proposition
-                virtual void addIntialProposition(Proposition p); 
+                virtual void addIntialProposition(Proposition p) =0;
                 // Adds a goal proposition
-                virtual void addGoalProposition(Proposition p);
+                virtual void addGoalProposition(Proposition p) =0;
                 // Sets the amount of actions
-                virtual void setActionCount(int count);
+                virtual void setActionCount(int count) =0;
 
                 // Adds an action to the problem (and returns its number)
-                virtual Action addAction();
+                virtual Action addAction() =0;
                 // Sets the name of an action
-                virtual void setActionName(Action a, std::string name);
+                virtual void setActionName(Action a, std::string name) =0;
                 // Adds a precondition to an action
-                virtual void addActionPrecondition(Action a, Proposition p);
+                virtual void addActionPrecondition(Action a, Proposition p) =0;
                 // Adds a positive effect to an action
-                virtual void addActionPosEffect(Action a, Proposition p);
+                virtual void addActionPosEffect(Action a, Proposition p) =0;
                 // Adds a negative effect to an action
-                virtual void addActionNegEffect(Action a, Proposition p);
+                virtual void addActionNegEffect(Action a, Proposition p) =0;
         };
         
         // Gets amount of variables in this problem
-        virtual int getVariableCount();
+        virtual int getVariableCount() =0;
         // Gets amount of actions in this problem
-        virtual int getActionCount();
+        virtual int getActionCount() =0;
 
         // Gets a list of goal propositions of this problem
-        virtual std::list<Proposition> getGoal();
+        virtual std::list<Proposition> getGoal() =0;
 
         // Properties of actions
         // Gets a list of preconditions of an action
-        virtual std::list<Proposition> getActionPreconditions(Action a);
+        virtual std::list<Proposition> getActionPreconditions(Action a) =0;
         // Gets a list of positive/add effects of an action
-        virtual std::list<Proposition> getActionPosEffects(Action a);
+        virtual std::list<Proposition> getActionPosEffects(Action a) =0;
         // Gets a list of negative/delete effects of an action
-        virtual std::list<Proposition> getActionNegEffects(Action a);
+        virtual std::list<Proposition> getActionNegEffects(Action a) =0;
         // Gets a list of actions that have the proposition as a positive effect
-        virtual std::list<Action> getPropPosActions(Proposition p);
+        virtual std::list<Action> getPropPosActions(Proposition p) =0;
 
         // Gets the number of the last proposition layer
-        virtual int getLastLayer();
+        virtual int getLastLayer() =0;
         // Gets the number of the last action layer
-        virtual int getLastActionLayer();
+        virtual int getLastActionLayer() =0;
         // Adds a proposition layer to the planning graph and returns its number
-        virtual int addPropositionLayer();
+        virtual int addPropositionLayer() =0;
         // Adds a action layer to the planning graph and returns its number
-        virtual int addActionLayer();
+        virtual int addActionLayer() =0;
 
         // Propositions and actions in the planning graph
         // Whether the given proposition is already enabled in the planning graph
-        virtual int isPropEnabled(Proposition p);
+        virtual int isPropEnabled(Proposition p) =0;
         // Whether the given action is already enabled in the planning graph
-        virtual int isActionEnabled(Action a);
+        virtual int isActionEnabled(Action a) =0;
         // Gets the number of the first layer where the given action is enabled
-        virtual int getActionFirstLayer(Action a);
+        virtual int getActionFirstLayer(Action a) =0;
 
         // Activates the given action in the given layer
-        virtual void activateAction(Action a, int layer);
+        virtual void activateAction(Action a, int layer) =0;
         // Activates the given proposition in the given layer
         // (TODO: Mabye not necessary, can be done in activateAction()?)
-        virtual void activateProposition(Proposition p, int layer);
+        virtual void activateProposition(Proposition p, int layer) =0;
 
         // Gets a list of propositions in a given layer
-        virtual std::list<Proposition> getLayerPropositions(int layer);
+        virtual std::list<Proposition> getLayerPropositions(int layer) =0;
         // Gets a list of actions in a given layer
-        virtual std::list<Action> getLayerActions(int layer);
+        virtual std::list<Action> getLayerActions(int layer) =0;
 
         // Mutex Handling
         // Checks if two propositions are mutex in a given layer
-        virtual inline int isMutexProp(Proposition p, Proposition q, int layer);
+        virtual inline int isMutexProp(Proposition p, Proposition q, int layer) =0;
         // Checks if two actions are mutex in a given layer
-        virtual inline int isMutexAction(Action a, Action b, int layer);
+        virtual inline int isMutexAction(Action a, Action b, int layer) =0;
         // Sets two propositions mutex in a given layer
-        virtual inline int setMutexProp(Proposition p, Proposition q, int layer);
+        virtual inline int setMutexProp(Proposition p, Proposition q, int layer) =0;
         // Sets two actions mutex in a given layer
-        virtual inline int setMutexAction(Action a, Action b, int layer);
+        virtual inline int setMutexAction(Action a, Action b, int layer) =0;
         // Gets the amount of proposition mutexes in a given layer
-        virtual int getPropMutexCount(int layer);
+        virtual int getPropMutexCount(int layer) =0;
 
         // Names
         // Gets the name of a proposition
-        virtual std::string getPropositionName(Proposition p);
+        virtual std::string getPropositionName(Proposition p) =0;
         // Gets the name of an action
-        virtual std::string getActionName(Action a);
+        virtual std::string getActionName(Action a) =0;
 
         // 
         // Returns whether the given action is a trivial action
-        virtual int isTrivialAction(Action a);
+        virtual int isTrivialAction(Action a) =0;
 
 };
 
