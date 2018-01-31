@@ -105,9 +105,11 @@ int Planner::checkFixedPoint() {
 int Planner::checkGoalUnreachable() {
     std::list<Proposition> problemGoal = problem->getGoal();
 
+    log(4, "test\n");
+
     // Check if all goals are enabled already. If not, return true.
     for (Proposition goal : problemGoal) {
-        if (!problem->isPropEnabled(goal)) {
+        if (!problem->isPropEnabled(goal, problem->getLastLayer())) {
             log(2, "Not all goal propositions enabled yet\n");
             return true;
         }
@@ -133,7 +135,6 @@ int Planner::graphplan(Plan& plan) {
     // Expand the graph until we hit a fixed-point level or we find out that
     // the problem is unsolvable.
     while (!fixedPoint && checkGoalUnreachable()) {
-        //layer++;
         expand();
         fixedPoint = fixedPoint || checkFixedPoint();
     }
@@ -152,9 +153,7 @@ int Planner::graphplan(Plan& plan) {
 
     while(!success) {
         // Expand for one more layer
-        // TODO: Proper logging -- std::cout << "Layer " << layer << std::endl;
         if (!fixedPoint) {
-            //layer++;
             expand();
             fixedPoint = checkFixedPoint();
         }
@@ -174,7 +173,6 @@ int Planner::graphplan(Plan& plan) {
         }
     }
 
-    // TODO: Proper logging -- std::cout << "Final number of layers: " << layer << std::endl;
     return success;
 }
 
@@ -185,21 +183,6 @@ void Planner::expand() {
 
     int newPropositionLayer = problem->addPropositionLayer();
     int newActionLayer = problem->addActionLayer();
-
-    /* TODO: Move to planning problem class
-    // Copy last proposition and action indices from current layer to next layer
-    // These values will be adjusted during the expanding in order to add new
-    // actions and propositions
-    int currentLastPropIndex, currentLastActionIndex;
-    currentLastPropIndex = problem->lastPropIndices.back();
-    if (!problem->lastActionIndices.empty()) {
-        currentLastActionIndex = problem->lastActionIndices.back();
-    } else{
-        currentLastActionIndex = -1;
-    }
-    problem->lastPropIndices.push_back(currentLastPropIndex);
-    problem->lastActionIndices.push_back(currentLastActionIndex);
-    */
 
     /* TODO: Possibly remove. Still useful if giving up optimality, i.e.
      * expanding beyond the fixed point
@@ -216,27 +199,19 @@ void Planner::expand() {
     // No nogoods for this layer yet
     countNogoods.push_back(0);
 
-    /* TODO: Move to planning problem class
-    // Add a new entry in the layerPropMutexCount vector to see if we reached a
-    // fixed-point level
-    problem->layerPropMutexCount.push_back(0);
-    */
-
-    std::list<Proposition> addedProps;
-
     // Add actions
     // TODO: Not a very clean loop
     for(Action action = 0; action < problem->getActionCount(); action++) {
         // Only check disabled actions
         // TODO: Potential for optimization: use a list of unused actions
-        if (problem->isActionEnabled(action)) continue;
+        if (problem->isActionEnabled(action, newActionLayer-1)) continue;
 
         bool enable = true;
 
         // Check if preconditions already present and abort if not
         std::list<Proposition> preconds = problem->getActionPreconditions(action);
         for (Proposition p : preconds) {
-            if (!problem->isPropEnabled(p)) {
+            if (!problem->isPropEnabled(p, lastPropositionLayer)) {
                 enable = false;
                 break;
             }
@@ -259,31 +234,6 @@ void Planner::expand() {
         // Add the action
         // Enable action in next layer
         problem->activateAction(action, newActionLayer);
-        /* TODO: Move to planning problem class
-        problem->lastActionIndices.back()++;
-        problem->layerActions[problem->lastActionIndices.back()] = action;
-        problem->actionEnabled[action] = 1;
-        problem->actionFirstLayer[action] = nextActionLayer;
-
-        // Add positive effects of action to next proposition layer
-        for (int i = problem->actionPosEffIndices[action];
-                i < problem->actionPosEffIndices[action+1]; i++) {
-            int prop = problem->actionPosEffEdges[i];
-            addedProps.push_back(prop);
-        }
-        */
-    }
-
-    // Add propositions
-    for (Proposition prop : addedProps) {
-        problem->activateProposition(prop, newPropositionLayer);
-        /* TODO: Move to planning problem class
-        if (!problem->propEnabled[prop]) {
-            problem->lastPropIndices.back()++;
-            problem->layerProps[problem->lastPropIndices.back()] = prop;
-            problem->propEnabled[prop] = 1;
-        }
-        */
     }
 
     updateActionLayerMutexes(lastPropositionLayer, newActionLayer);
@@ -364,8 +314,9 @@ int Planner::checkPropsMutex(Proposition p, Proposition q, int actionLayer) {
     // Iterate over all pairs of p's and q's preconditions
     for (int a : problem->getPropPosActions(p)) {
         for (int b : problem->getPropPosActions(q)) {
-            if (problem->isActionEnabled(a) && problem->isActionEnabled(b) &&
-                    !(problem->isMutexAction(a, b, actionLayer))) {
+            if (problem->isActionEnabled(a, actionLayer)
+                    && problem->isActionEnabled(b, actionLayer)
+                    && !(problem->isMutexAction(a, b, actionLayer))) {
                 // Two non-mutex actions exist which resp. enable p and q
                 return false;
             }
@@ -457,6 +408,7 @@ int Planner::extract(std::list<Proposition> goal, int layer, Plan& plan) {
 int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, int layer, Plan& plan) {
     log(2, "Performing gpSearch\n");
 
+    int actionLayer = problem->getActionLayerBeforePropLayer(layer);
     /*
     for (int g : goal) {
         //std::cout << problem->propNames[g] << ", ";
@@ -493,7 +445,7 @@ int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, in
     std::list<Action> providers;
     for (Action provider : problem->getPropPosActions(nextProp)) {
         // Check if provider is enabled and if not, skip provider
-        if (!(problem->isActionEnabled(provider))
+        if (!(problem->isActionEnabled(provider, actionLayer))
                 || problem->getActionFirstLayer(provider) > layer) {
             continue;
         }
@@ -501,7 +453,7 @@ int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, in
         // Check if provider is mutex with any already chosen action
         bool mut = false;
         for (Action act : actions) {
-            if (problem->isMutexAction(provider, act, layer)) {
+            if (problem->isMutexAction(provider, act, actionLayer)) {
                 mut = true;
                 break;
             }

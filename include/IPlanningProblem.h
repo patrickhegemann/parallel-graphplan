@@ -87,10 +87,10 @@ class IPlanningProblem {
         virtual int addActionLayer() =0;
 
         // Propositions and actions in the planning graph
-        // Whether the given proposition is already enabled in the planning graph
-        virtual int isPropEnabled(Proposition p) =0;
-        // Whether the given action is already enabled in the planning graph
-        virtual int isActionEnabled(Action a) =0;
+        // Whether the given proposition is enabled in the given layer
+        virtual int isPropEnabled(Proposition p, int layer) =0;
+        // Whether the given action is already enabled in the given layer
+        virtual int isActionEnabled(Action a, int layer) =0;
         // Gets the number of the first layer where the given action is enabled
         virtual int getActionFirstLayer(Action a) =0;
 
@@ -106,13 +106,13 @@ class IPlanningProblem {
 
         // Mutex Handling
         // Checks if two propositions are mutex in a given layer
-        virtual inline int isMutexProp(Proposition p, Proposition q, int layer) =0;
+        virtual int isMutexProp(Proposition p, Proposition q, int layer) =0;
         // Checks if two actions are mutex in a given layer
-        virtual inline int isMutexAction(Action a, Action b, int layer) =0;
+        virtual int isMutexAction(Action a, Action b, int layer) =0;
         // Sets two propositions mutex in a given layer
-        virtual inline int setMutexProp(Proposition p, Proposition q, int layer) =0;
+        virtual void setMutexProp(Proposition p, Proposition q, int layer) =0;
         // Sets two actions mutex in a given layer
-        virtual inline int setMutexAction(Action a, Action b, int layer) =0;
+        virtual void setMutexAction(Action a, Action b, int layer) =0;
         // Gets the amount of proposition mutexes in a given layer
         virtual int getPropMutexCount(int layer) =0;
 
@@ -125,6 +125,10 @@ class IPlanningProblem {
         // 
         // Returns whether the given action is a trivial action
         virtual int isTrivialAction(Action a) =0;
+        // Returns number of the proposition layer after given action layer
+        virtual int getPropLayerAfterActionLayer(int actionLayer) =0;
+        // Returns number of the action layer before given proposition layer
+        virtual int getActionLayerBeforePropLayer(int propLayer) =0;
 
 };
 

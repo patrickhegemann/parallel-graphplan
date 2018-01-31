@@ -37,8 +37,8 @@ class PlanningProblem : public IPlanningProblem {
         int addActionLayer();
 
         // Propositions and actions in the planning graph
-        int isPropEnabled(Proposition p);
-        int isActionEnabled(Action a);
+        int isPropEnabled(Proposition p, int layer);
+        int isActionEnabled(Action a, int layer);
         int getActionFirstLayer(Action a);
 
         void activateAction(Action a, int layer);
@@ -48,10 +48,10 @@ class PlanningProblem : public IPlanningProblem {
         std::list<Action> getLayerActions(int layer);
 
         // Mutex Handling
-        inline int isMutexProp(Proposition p, Proposition q, int layer);
-        inline int isMutexAction(Action a, Action b, int layer);
-        inline int setMutexProp(Proposition p, Proposition q, int layer);
-        inline int setMutexAction(Action a, Action b, int layer);
+        int isMutexProp(Proposition p, Proposition q, int layer);
+        int isMutexAction(Action a, Action b, int layer);
+        void setMutexProp(Proposition p, Proposition q, int layer);
+        void setMutexAction(Action a, Action b, int layer);
         int getPropMutexCount(int layer);
 
         std::string getPropositionName(Proposition p);
@@ -59,11 +59,16 @@ class PlanningProblem : public IPlanningProblem {
 
         int isTrivialAction(Action a);
     
+        int getPropLayerAfterActionLayer(int actionLayer);
+        int getActionLayerBeforePropLayer(int propLayer);
+
     private:
         // Amount of variables in the problem
         int countVariables;
         // Size of each variable domain
         std::vector<int> variableDomainSize;
+        // Total amount of propositions (variable value pairs)
+        int totalPropositionCount;
 
         // Amount of actions defined in the problem
         int countActions;
@@ -90,6 +95,11 @@ class PlanningProblem : public IPlanningProblem {
         // Implemented as an adjacency list
         std::map<Proposition, std::list<Action>> propPosActions;
 
+        // Number of last proposition layer
+        int lastPropLayer;
+        // Number of last action layer
+        int lastActionLayer;
+
         // Mutexes, here implemented as matrixes. The matrix entries specify the
         // *last* layer in which the propositions/actions are mutex with each other
         int *propMutexes;
@@ -105,8 +115,8 @@ class PlanningProblem : public IPlanningProblem {
 
         // Lists that hold an index for each layer, indicating the point up to which a
         // layer contains propositions/actions from the layerProps/layerActions arrays
-        std::list<int> lastPropIndices;
-        std::list<int> lastActionIndices;
+        std::vector<int> lastPropIndices;
+        std::vector<int> lastActionIndices;
 
         // Array indicating the amount of proposition mutexes in each proposition layer
         // for calculating if a fixed-point level is reached

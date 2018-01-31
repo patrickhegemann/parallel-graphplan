@@ -17,7 +17,7 @@ int PlanningProblem::getVariableCount() {
 }
 
 int PlanningProblem::getActionCount() {
-
+    return countActions;
 }
 
 std::list<Proposition> PlanningProblem::getGoal() {
@@ -25,19 +25,25 @@ std::list<Proposition> PlanningProblem::getGoal() {
 }
 
 std::list<Proposition> PlanningProblem::getActionPreconditions(Action a) {
-
+    auto begin = actionPrecEdges.begin() + actionPrecIndices[a];
+    auto end = actionPrecEdges.begin() + actionPrecIndices[a + 1];
+    return std::list<Proposition>(begin, end);
 }
 
 std::list<Proposition> PlanningProblem::getActionPosEffects(Action a) {
-
+    auto begin = actionPosEffEdges.begin() + actionPosEffIndices[a];
+    auto end = actionPosEffEdges.begin() + actionPosEffIndices[a + 1];
+    return std::list<Proposition>(begin, end);
 }
 
 std::list<Proposition> PlanningProblem::getActionNegEffects(Action a) {
-
+    auto begin = actionNegEffEdges.begin() + actionNegEffIndices[a];
+    auto end = actionNegEffEdges.begin() + actionNegEffIndices[a + 1];
+    return std::list<Proposition>(begin, end);
 }
 
 std::list<Action> PlanningProblem::getPropPosActions(Proposition p) {
-
+    return propPosActions[p];
 }
 
 int PlanningProblem::getFirstLayer() {
@@ -45,82 +51,122 @@ int PlanningProblem::getFirstLayer() {
 }
 
 int PlanningProblem::getLastLayer() {
-
+    return lastPropLayer;
 }
 
 int PlanningProblem::getLastActionLayer() {
-
+    return lastActionLayer;
 }
 
 int PlanningProblem::addPropositionLayer() {
+    // No mutexes in this layer yet
+    layerPropMutexCount.push_back(0);
 
+    // At least same propositions as previous layer are available
+    if (lastPropIndices.empty()) {
+        lastPropIndices.push_back(-1);
+    } else {
+        lastPropIndices.push_back(lastPropIndices[lastPropLayer]);
+    }
+    lastPropLayer++;
+
+    return lastPropLayer;
 }
 
 int PlanningProblem::addActionLayer() {
+    // At least same actions as previous layer are available
+    if (lastActionIndices.empty()) {
+        lastActionIndices.push_back(-1);
+    } else {
+        lastActionIndices.push_back(lastActionIndices[lastActionLayer]);
+    }
+    lastActionLayer++;
 
+    return lastActionLayer;
 }
 
-int PlanningProblem::isPropEnabled(Proposition p) {
-    return propFirstLayer.count(p);
+int PlanningProblem::isPropEnabled(Proposition p, int layer) {
+    return (propFirstLayer[p] <= layer);
 }
 
-int PlanningProblem::isActionEnabled(Action a) {
-
+int PlanningProblem::isActionEnabled(Action a, int layer) {
+    return (actionFirstLayer[a] <= layer);
 }
 
 int PlanningProblem::getActionFirstLayer(Action a) {
-
+    return actionFirstLayer[a];
 }
 
 void PlanningProblem::activateAction(Action a, int layer) {
+    lastActionIndices[layer]++;
+    layerActions[lastActionIndices[layer]] = a;
+    actionFirstLayer[a] = layer;
 
+    // Add positive effects of action to next proposition layer
+    for (int i = actionPosEffIndices[a]; i < actionPosEffIndices[a+1]; i++) {
+        activateProposition(actionPosEffEdges[i], getPropLayerAfterActionLayer(layer));
+    }
 }
 
 void PlanningProblem::activateProposition(Proposition p, int layer) {
-    if (!isPropEnabled(p)) {    // TODO: Possible optimization: Don't check
+    if (!isPropEnabled(p, layer)) {
         propFirstLayer[p] = layer;
         layerProps.push_back(p);
+        lastPropIndices[layer]++;
     }
 }
 
 std::list<Proposition> PlanningProblem::getLayerPropositions(int layer) {
-
+    auto end = layerProps.begin() + lastPropIndices[layer];
+    return std::list<Proposition>(layerProps.begin(), end);
 }
 
 std::list<Action> PlanningProblem::getLayerActions(int layer) {
-
+    auto end = layerActions.begin() + lastActionIndices[layer];
+    return std::list<Action>(layerActions.begin(), end);
 }
 
-inline int PlanningProblem::isMutexProp(Proposition p, Proposition q, int layer) {
-
+int PlanningProblem::isMutexProp(Proposition p, Proposition q, int layer) {
+    // TODO 
+    // return (propMutexes[a*p->countPropositions + b] >= layer) ||
+    return 0;
 }
 
-inline int PlanningProblem::isMutexAction(Action a, Action b, int layer) {
-
+int PlanningProblem::isMutexAction(Action a, Action b, int layer) {
+    // TODO: implement
+    return 0;
 }
 
-inline int PlanningProblem::setMutexProp(Proposition p, Proposition q, int layer) {
-
+void PlanningProblem::setMutexProp(Proposition p, Proposition q, int layer) {
+    // TODO: implement
 }
 
-inline int PlanningProblem::setMutexAction(Action a, Action b, int layer) {
-
+void PlanningProblem::setMutexAction(Action a, Action b, int layer) {
+    // TODO: implement
 }
 
 int PlanningProblem::getPropMutexCount(int layer) {
-
+    return layerPropMutexCount[layer];
 }
 
 std::string PlanningProblem::getPropositionName(Proposition p) {
-
+    return propNames[p];
 }
 
 std::string PlanningProblem::getActionName(Action a) {
-
+    return actionNames[a];
 }
 
 int PlanningProblem::isTrivialAction(Action a) {
+    return (a < totalPropositionCount);
+}
 
+int PlanningProblem::getPropLayerAfterActionLayer(int actionLayer) {
+    return actionLayer + 1;
+}
+
+int PlanningProblem::getActionLayerBeforePropLayer(int propLayer) {
+    return propLayer - 1;
 }
 
 
@@ -144,6 +190,7 @@ PlanningProblem* PlanningProblem::Builder::build() {
     problem->actionPrecIndices.push_back(problem->actionPrecEdges.size());
     problem->actionPosEffIndices.push_back(problem->actionPosEffEdges.size());
     problem->actionNegEffIndices.push_back(problem->actionNegEffEdges.size());
+    problem->totalPropositionCount = this->totalPropositionCount;
 
     return problem;
 }
@@ -267,7 +314,6 @@ void PlanningProblem::Builder::addActionNegEffect(Action a, Proposition p) {
 void PlanningProblem::Builder::finalizeVariables() {
     assert(!variablesFinalized);
 
-
     // Calculate total proposition count (i.e. how many combinations of two
     // variable/value pairs there are)
     totalPropositionCount = 0;
@@ -283,8 +329,11 @@ void PlanningProblem::Builder::finalizeVariables() {
     // Reserve enough space for the vector that stores enabled propositions in order
     problem->layerProps.reserve(totalPropositionCount);
 
+    // TODO: move this somewhere else?
+    // add dummy layers so we get 1 to be the first actual layer, not 0 (also for actions layer)
+    problem->addPropositionLayer();//lastActionIndices.push_back(-1);
+    problem->addActionLayer();//lastPropIndices.push_back(-1);
     // Initial proposition layer will assign every variable one value
-    // TODO: push a 0 somewhere before this, so we get 1 to be the first actual layer, not 0
     problem->lastPropIndices.push_back(problem->getVariableCount() - 1);
 
     variablesFinalized = true;
