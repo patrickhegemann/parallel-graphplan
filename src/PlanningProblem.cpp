@@ -127,22 +127,29 @@ std::list<Action> PlanningProblem::getLayerActions(int layer) {
 }
 
 int PlanningProblem::isMutexProp(Proposition p, Proposition q, int layer) {
-    // TODO 
-    // return (propMutexes[a*p->countPropositions + b] >= layer) ||
-    return 0;
+    int pMutexNumber = variableMutexIndex[p.first]+p.second;
+    int qMutexNumber = variableMutexIndex[q.first]+q.second;
+    return (propMutexes[pMutexNumber*totalPropositionCount + qMutexNumber] >= layer ||
+        p.first == q.first);
 }
 
 int PlanningProblem::isMutexAction(Action a, Action b, int layer) {
-    // TODO: implement
-    return 0;
+    return actionMutexes[a*countActions + b] >= layer;
 }
 
 void PlanningProblem::setMutexProp(Proposition p, Proposition q, int layer) {
-    // TODO: implement
+    if (layer < INT_MAX && !isMutexProp(p, q, layer) && p.first != q.first) {
+        layerPropMutexCount[layer]++;
+    }
+    int pMutexNumber = variableMutexIndex[p.first]+p.second;
+    int qMutexNumber = variableMutexIndex[q.first]+q.second;
+    propMutexes[pMutexNumber*totalPropositionCount + qMutexNumber] = layer;
+    propMutexes[qMutexNumber*totalPropositionCount + pMutexNumber] = layer;
 }
 
 void PlanningProblem::setMutexAction(Action a, Action b, int layer) {
-    // TODO: implement
+    actionMutexes[a*countActions + b] = layer;
+    actionMutexes[b*countActions + a] = layer;
 }
 
 int PlanningProblem::getPropMutexCount(int layer) {
@@ -209,6 +216,12 @@ void PlanningProblem::Builder::setVariableCount(int count) {
 }
 
 Variable PlanningProblem::Builder::addVariable() {
+    if (problem->variableMutexIndex.empty()) {
+        problem->variableMutexIndex.push_back(0);
+    } else {
+        problem->variableMutexIndex.push_back(problem->variableMutexIndex.back()+problem->variableDomainSize[nextVariable-1]);
+    }
+
     return nextVariable++;
 }
 

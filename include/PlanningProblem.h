@@ -105,6 +105,13 @@ class PlanningProblem : public IPlanningProblem {
         int *propMutexes;
         int *actionMutexes;
 
+        // Each proposition needs to have a unique number that can be used to check
+        // mutexes. Each variable has its "starting number", that the value of the
+        // proposition will be added to in order to get this unique number.
+        // In this case the starting number of a variable depends on the domain size
+        // of all the variables before it.
+        std::vector<int> variableMutexIndex;
+
         // Arrays that indicate in which layer a proposition/action first shows up
         std::map<Proposition, int> propFirstLayer;
         std::vector<int> actionFirstLayer;
