@@ -184,7 +184,7 @@ int Planner::graphplan(Plan& plan) {
         // Do backwards search with given goal propositions
         lastLayer = problem->getLastLayer();
         if (fixedPoint) lastLayer--;    // about the -1 see above
-        int success = extract(goal, problem->getLastLayer(), plan);
+        int success = extract(goal, lastLayer, plan);
 
         if ((!success) && fixedPoint) {
             if (lastNogoodCount == countNogoods[problem->getLastLayer()]) {
