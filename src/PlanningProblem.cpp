@@ -21,7 +21,7 @@ int PlanningProblem::getActionCount() {
 }
 
 std::list<Proposition> PlanningProblem::getGoal() {
-    return std::list<Proposition>();
+    return std::list<Proposition>(goalPropositions);
 }
 
 std::list<Proposition> PlanningProblem::getActionPreconditions(Action a) {
@@ -59,6 +59,7 @@ int PlanningProblem::getLastActionLayer() {
 }
 
 int PlanningProblem::addPropositionLayer() {
+    log(4, "addPropositionLayer. lastPropLayer=%d\n", lastPropLayer);
     // No mutexes in this layer yet
     layerPropMutexCount.push_back(0);
 
@@ -66,9 +67,15 @@ int PlanningProblem::addPropositionLayer() {
     if (lastPropIndices.empty()) {
         lastPropIndices.push_back(-1);
     } else {
-        lastPropIndices.push_back(lastPropIndices[lastPropLayer]);
+        //lastPropIndices.push_back(lastPropIndices[lastPropLayer]);
+        for (auto x : lastPropIndices) {
+            log(4, "x = %d\n", x);
+        }
+        lastPropIndices.push_back(lastPropIndices.back());
     }
     lastPropLayer++;
+
+    log(4, "new value of lastPropLayer = %d\n", lastPropLayer);
 
     return lastPropLayer;
 }
@@ -78,7 +85,7 @@ int PlanningProblem::addActionLayer() {
     if (lastActionIndices.empty()) {
         lastActionIndices.push_back(-1);
     } else {
-        lastActionIndices.push_back(lastActionIndices[lastActionLayer]);
+        lastActionIndices.push_back(lastActionIndices.back());
     }
     lastActionLayer++;
 
@@ -86,11 +93,11 @@ int PlanningProblem::addActionLayer() {
 }
 
 int PlanningProblem::isPropEnabled(Proposition p, int layer) {
-    return (propFirstLayer[p] <= layer);
+    return (propFirstLayer[p] <= layer && propFirstLayer[p] > 0);
 }
 
 int PlanningProblem::isActionEnabled(Action a, int layer) {
-    return (actionFirstLayer[a] <= layer);
+    return (actionFirstLayer[a] <= layer && actionFirstLayer[a] > 0);
 }
 
 int PlanningProblem::getActionFirstLayer(Action a) {
@@ -109,7 +116,9 @@ void PlanningProblem::activateAction(Action a, int layer) {
 }
 
 void PlanningProblem::activateProposition(Proposition p, int layer) {
+    log(4, "activateProposition: %s in layer %d\n", propNames[p].c_str(), layer);
     if (!isPropEnabled(p, layer)) {
+        log(4, "That proposition will now be added\n");
         propFirstLayer[p] = layer;
         layerProps.push_back(p);
         lastPropIndices[layer]++;
@@ -117,13 +126,24 @@ void PlanningProblem::activateProposition(Proposition p, int layer) {
 }
 
 std::list<Proposition> PlanningProblem::getLayerPropositions(int layer) {
-    auto end = layerProps.begin() + lastPropIndices[layer];
+    log(4, "getLayerPropositions\n");
+    log(4, "Layer: %d\n", layer);
+    log(4, "lastPropIndices[%d] = %d\n", layer, lastPropIndices[layer]);
+
+    // + 1 because the last proposition needs to be included here
+    auto end = layerProps.begin() + lastPropIndices[layer] + 1;
     return std::list<Proposition>(layerProps.begin(), end);
 }
 
 std::list<Action> PlanningProblem::getLayerActions(int layer) {
-    auto end = layerActions.begin() + lastActionIndices[layer];
-    return std::list<Action>(layerActions.begin(), end);
+    auto end = layerActions.begin() + lastActionIndices[layer] + 1;
+    std::list<Action> acts(layerActions.begin(), end);
+    log(4, "Hello?\n");
+    for (auto a : acts) {
+        log(4, "a = %s\n", actionNames[a].c_str());
+    }
+    return acts;
+    //return std::list<Action>(layerActions.begin(), end);
 }
 
 int PlanningProblem::isMutexProp(Proposition p, Proposition q, int layer) {
@@ -134,22 +154,28 @@ int PlanningProblem::isMutexProp(Proposition p, Proposition q, int layer) {
 }
 
 int PlanningProblem::isMutexAction(Action a, Action b, int layer) {
+    log(5, "Checking if actions \"%s\" and \"%s\" are mutex in layer %d\n", actionNames[a].c_str(), actionNames[b].c_str(), layer);
+    log(5, "result: %d\n", (actionMutexes[a*countActions + b] >= layer));
     return actionMutexes[a*countActions + b] >= layer;
 }
 
 void PlanningProblem::setMutexProp(Proposition p, Proposition q, int layer) {
-    if (layer < INT_MAX && !isMutexProp(p, q, layer) && p.first != q.first) {
+    if (layer < INT_MAX && !isMutexProp(p, q, layer)) {
         layerPropMutexCount[layer]++;
     }
-    int pMutexNumber = variableMutexIndex[p.first]+p.second;
-    int qMutexNumber = variableMutexIndex[q.first]+q.second;
-    propMutexes[pMutexNumber*totalPropositionCount + qMutexNumber] = layer;
-    propMutexes[qMutexNumber*totalPropositionCount + pMutexNumber] = layer;
+    if (!isMutexProp(p, q, layer)) {
+        int pMutexNumber = variableMutexIndex[p.first]+p.second;
+        int qMutexNumber = variableMutexIndex[q.first]+q.second;
+        propMutexes[pMutexNumber*totalPropositionCount + qMutexNumber] = layer;
+        propMutexes[qMutexNumber*totalPropositionCount + pMutexNumber] = layer;
+        log(2, "Propositions \"%s\" and \"%s\" are now mutex in layer %d\n", propNames[p].c_str(), propNames[q].c_str(), layer);
+    }
 }
 
 void PlanningProblem::setMutexAction(Action a, Action b, int layer) {
     actionMutexes[a*countActions + b] = layer;
     actionMutexes[b*countActions + a] = layer;
+    log(2, "Actions \"%s\" and \"%s\" are now mutex in layer %d\n", actionNames[a].c_str(), actionNames[b].c_str(), layer);
 }
 
 int PlanningProblem::getPropMutexCount(int layer) {
@@ -187,6 +213,10 @@ int PlanningProblem::getActionLayerBeforePropLayer(int propLayer) {
 PlanningProblem::Builder::Builder() {
     // Allocate new Planning Problem on the heap so we can use it in the algorithm later
     problem = new PlanningProblem();
+    
+    problem->layerPropMutexCount.push_back(0);
+    problem->lastPropIndices.push_back(-1);
+    problem->lastActionIndices.push_back(-1);
 }
 
 /**
@@ -194,10 +224,46 @@ PlanningProblem::Builder::Builder() {
  */
 PlanningProblem* PlanningProblem::Builder::build() {
     // Finalize adjacency arrays (Add trailing dummy element)
-    problem->actionPrecIndices.push_back(problem->actionPrecEdges.size());
-    problem->actionPosEffIndices.push_back(problem->actionPosEffEdges.size());
-    problem->actionNegEffIndices.push_back(problem->actionNegEffEdges.size());
+    problem->actionPrecIndices[problem->actionPrecIndices.size()-1] = problem->actionPrecEdges.size();
+    problem->actionPosEffIndices[problem->actionPosEffIndices.size()-1] = problem->actionPosEffEdges.size();
+    problem->actionNegEffIndices[problem->actionNegEffIndices.size()-1] = problem->actionNegEffEdges.size();
     problem->totalPropositionCount = this->totalPropositionCount;
+
+
+    // Experimental output of structure so far
+    log(4, "Dumping problem data\n");
+    log(4, "Variables and propositions:\n");
+    log(4, "Variable count: %d\n", problem->countVariables);
+    for (int var = 0; var < problem->countVariables; var++) {
+        log(4, "Variable %d:\n", var);
+        for (int val = 0; val < problem->variableDomainSize[var]; val++) {
+            //std::cout << problem->propNames[Proposition(var, val)] << std::endl;
+            log(4, "\tVal %d: %s\n", val, problem->getPropositionName(Proposition(var, val)).c_str());
+        }
+    }
+
+    log(4, "Actions:\n");
+    for (Action a = 0; a < problem->countActions; a++) {
+        log(4, "Action %d: %s\n", a, problem->actionNames[a].c_str());
+        for (Proposition prec : problem->getActionPreconditions(a)) {
+            log(4, "\tPrec: %s\n", problem->getPropositionName(prec).c_str());
+        }
+        for (Proposition pos : problem->getActionPosEffects(a)) {
+            log(4, "\t+ Eff: %s\n", problem->getPropositionName(pos).c_str());
+        }
+        for (Proposition neg : problem->getActionNegEffects(a)) {
+            log(4, "\t- Eff: %s\n", problem->getPropositionName(neg).c_str());
+        }
+    }
+
+    log(4, "Layers:\n");
+    for (int i = problem->getFirstLayer(); i <= problem->getLastLayer(); i++) {
+        log(4, "Layer %d:\n", i);
+        for (Proposition p : problem->getLayerPropositions(i)) {
+            log(4, "Prop %s is enabled\n", problem->getPropositionName(p).c_str());
+        }
+    }
+    // End experimental output
 
     return problem;
 }
@@ -264,6 +330,7 @@ void PlanningProblem::Builder::setActionCount(int count) {
     problem->countActions = count;
 
     // Resize adjacency arrays
+    log(4, "count = %d\n", count);
     problem->actionPrecIndices.resize(count+1);
     problem->actionPosEffIndices.resize(count+1);
     problem->actionNegEffIndices.resize(count+1);
@@ -286,9 +353,9 @@ void PlanningProblem::Builder::setActionCount(int count) {
 
 Action PlanningProblem::Builder::addAction() {
     // Set adjacency array entries. Currently no preconditions or effects.
-    problem->actionPrecIndices[nextAction] = problem->actionPrecIndices.size();
-    problem->actionPosEffIndices[nextAction] = problem->actionPosEffIndices.size();
-    problem->actionNegEffIndices[nextAction] = problem->actionNegEffIndices.size();
+    problem->actionPrecIndices[nextAction] = problem->actionPrecEdges.size();
+    problem->actionPosEffIndices[nextAction] = problem->actionPosEffEdges.size();
+    problem->actionNegEffIndices[nextAction] = problem->actionNegEffEdges.size();
     return nextAction++;
 }
 
@@ -299,14 +366,14 @@ void PlanningProblem::Builder::setActionName(Action a, std::string name) {
 void PlanningProblem::Builder::addActionPrecondition(Action a, Proposition p) {
     assert(a == nextAction-1);
 
-    problem->actionPrecIndices[a]++;
+    problem->actionPrecIndices[a+1]++;
     problem->actionPrecEdges.push_back(p);
 }
 
 void PlanningProblem::Builder::addActionPosEffect(Action a, Proposition p) {
     assert(a == nextAction-1);
 
-    problem->actionPosEffIndices[a]++;
+    problem->actionPosEffIndices[a+1]++;
     problem->actionPosEffEdges.push_back(p);
     problem->propPosActions[p].push_back(a);
 }
@@ -314,7 +381,7 @@ void PlanningProblem::Builder::addActionPosEffect(Action a, Proposition p) {
 void PlanningProblem::Builder::addActionNegEffect(Action a, Proposition p) {
     assert(a == nextAction-1);
 
-    problem->actionNegEffIndices[a]++;
+    problem->actionNegEffIndices[a+1]++;
     problem->actionNegEffEdges.push_back(p);
 }
 
@@ -340,14 +407,15 @@ void PlanningProblem::Builder::finalizeVariables() {
     problem->propMutexes = new int[totalPropositionCount*totalPropositionCount];
 
     // Reserve enough space for the vector that stores enabled propositions in order
-    problem->layerProps.reserve(totalPropositionCount);
+    //problem->layerProps.reserve(totalPropositionCount);
 
     // TODO: move this somewhere else?
     // add dummy layers so we get 1 to be the first actual layer, not 0 (also for actions layer)
+    //problem->layerPropMutexCount.push_back(0);
+    //problem->lastPropIndices.push_back(-1);
+
+    //problem->addActionLayer();//lastPropIndices.push_back(-1);
     problem->addPropositionLayer();//lastActionIndices.push_back(-1);
-    problem->addActionLayer();//lastPropIndices.push_back(-1);
-    // Initial proposition layer will assign every variable one value
-    problem->lastPropIndices.push_back(problem->getVariableCount() - 1);
 
     variablesFinalized = true;
 }

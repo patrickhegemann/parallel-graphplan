@@ -75,10 +75,19 @@ void Planner::addNogood(int layer, std::list<Proposition> props) {
  * Check if a fixed point in the planning graph is reached
  */
 int Planner::checkFixedPoint() {
+    log(4, "Checking for fixed point\n");
+
     int lastLayer = problem->getLastLayer();
 
     // Checking only makes sense if we have at least two existing layers.
-    if (lastLayer < 2) return false;
+    if (lastLayer - problem->getFirstLayer() < 1) return false;
+
+    log(4, "last prop#: %d, before that: %d, last mutex#: %d, before that: %d\n",
+            problem->getLayerPropositions(lastLayer).size(),
+            problem->getLayerPropositions(lastLayer-1).size(),
+            problem->getPropMutexCount(lastLayer),
+            problem->getPropMutexCount(lastLayer-1)
+        );
 
     // If the last two layers have equal amounts of propositions and proposition
     // mutexes then we have reached a fixed point.
@@ -103,12 +112,13 @@ int Planner::checkFixedPoint() {
  * if the problem is unsolvable.
  */
 int Planner::checkGoalUnreachable() {
-    std::list<Proposition> problemGoal = problem->getGoal();
+    log(4, "Checking if goal is unreachable\n");
 
-    log(4, "test\n");
+    std::list<Proposition> problemGoal = problem->getGoal();
 
     // Check if all goals are enabled already. If not, return true.
     for (Proposition goal : problemGoal) {
+        log(4, "Checking if %s is unreachable\n", problem->getPropositionName(goal).c_str());
         if (!problem->isPropEnabled(goal, problem->getLastLayer())) {
             log(2, "Not all goal propositions enabled yet\n");
             return true;
@@ -127,17 +137,21 @@ int Planner::checkGoalUnreachable() {
     }
 
     // None of the above are true -> Goal reachable
+    log(4, "Goal is reachable.\n");
     return false;
 }
 
 
 int Planner::graphplan(Plan& plan) {
+    log(4, "Entering graphplan algorithm\n");
+
     // Expand the graph until we hit a fixed-point level or we find out that
     // the problem is unsolvable.
     while (!fixedPoint && checkGoalUnreachable()) {
         expand();
         fixedPoint = fixedPoint || checkFixedPoint();
     }
+
     // If goal is impossible to reach, this problem has no solution
     if (checkGoalUnreachable()) {
         log(1, "Goal unreachable, aborting\n");
@@ -145,8 +159,14 @@ int Planner::graphplan(Plan& plan) {
     }
 
     // Do backwards search with given goal propositions
-    std::list<Proposition> goal(problem->getGoal().begin(), problem->getGoal().end());
-    int success = extract(goal, problem->getLastLayer(), plan);
+    log(4, "Preparing goal list\n");
+    std::list<Proposition> goal = problem->getGoal();
+    log(4, "Calling first extract\n");
+    // If fixed point is reached, we have theoretically expanded beyond it, just to find out.
+    // So we subtract that additional layer again
+    int lastLayer = problem->getLastLayer();
+    if (fixedPoint) lastLayer--;
+    int success = extract(goal, lastLayer, plan);
 
     // Keep track of how many nogoods exist, so we can determine if any are added during an iteration
     int lastNogoodCount = 0;
@@ -162,7 +182,8 @@ int Planner::graphplan(Plan& plan) {
         plan.clear();
 
         // Do backwards search with given goal propositions
-        std::list<Proposition> goal(problem->getGoal().begin(), problem->getGoal().end());
+        lastLayer = problem->getLastLayer();
+        if (fixedPoint) lastLayer--;    // about the -1 see above
         int success = extract(goal, problem->getLastLayer(), plan);
 
         if ((!success) && fixedPoint) {
@@ -182,7 +203,9 @@ void Planner::expand() {
     int lastPropositionLayer = problem->getLastLayer();
 
     int newPropositionLayer = problem->addPropositionLayer();
+    log(4, "New proposition layer is %d\n", newPropositionLayer);
     int newActionLayer = problem->addActionLayer();
+    log(4, "New action layer is %d\n", newActionLayer);
 
     /* TODO: Possibly remove. Still useful if giving up optimality, i.e.
      * expanding beyond the fixed point
@@ -367,22 +390,16 @@ int Planner::checkActionPrecsMutex(int a, int b, int propLayer) {
 
 
 int Planner::extract(std::list<Proposition> goal, int layer, Plan& plan) {
-    log(2, "Extracting\n");
-    /*
-    if (verbosityLevelSetting >= 3) {
-        for (int g : goal) {
-            //log(2, "%d, ", g);
-            std::cout << g << ", ";
-        }
-        //log(2, "in layer %d\n", layer);
-        std::cout << "in layer " << layer << std::endl;
-    } else {
-        std::cout << std::endl;
+    log(2, "Extracting in layer %d\n", layer);
+
+    for (Proposition g : goal) {
+        log(4, "\t%s\n", problem->getPropositionName(g).c_str());
+        //std::cout << "(" << g.first << "," << g.second << "), ";
     }
-    */
-    
+    //std::cout << "in layer " << layer << std::endl;
+
     // Trivial success
-    if (layer == 0) {
+    if (layer == problem->getFirstLayer()) {
         return 1;
     }
 

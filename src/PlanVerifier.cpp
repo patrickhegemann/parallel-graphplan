@@ -3,6 +3,8 @@
 #include <iostream>
 #include <algorithm>
 
+#include "Logger.h"
+
 #include "PlanVerifier.h"
 
 
@@ -10,8 +12,9 @@ PlanVerifier::PlanVerifier(IPlanningProblem *problem, Plan plan) {
     this->problem = problem;
     this->plan = plan;
     
-    std::list<Proposition> initialState = problem->getLayerPropositions(0);
+    std::list<Proposition> initialState = problem->getLayerPropositions(problem->getFirstLayer());
     for (Proposition p : initialState) {
+        log(4, "Inserting %s into initial state\n", problem->getPropositionName(p).c_str());
         state.insert(p);
     }
 }
@@ -22,8 +25,13 @@ PlanVerifier::PlanVerifier(IPlanningProblem *problem, Plan plan) {
  * checking if the goal conditions are met.
  */
 int PlanVerifier::verify() {
+    //for (int layerNumber = problem->getFirstLayer(); layerNumber <= problem->getLastLayer(); layerNumber++) {
     for (int layerNumber = 0; layerNumber < plan.getLayerCount(); layerNumber++) {
+        log(4, "Verifying layer number %d\n", layerNumber);
         std::list<Action> layer = plan.getLayerActions(layerNumber);
+        for (auto a : layer) {
+            log(4, "\t%s\n", problem->getActionName(a).c_str());
+        }
         if (!simulateStep(layer)) return false;
     }
 
@@ -34,12 +42,15 @@ int PlanVerifier::verify() {
  * Simulates a step of the plan
  */
 int PlanVerifier::simulateStep(std::list<int> step) {
+    log(4, "Simulating a step\n");
+
     std::list<Proposition> adding;
     std::list<Proposition> removing;
 
     for (Action action : step) {
         // Check preconditions and return false if not met
         for (Proposition precondition : problem->getActionPreconditions(action)) {
+            log(4, "Checking for precondition %s\n", problem->getPropositionName(precondition).c_str());
             if (state.count(precondition) == 0) return false;
         }
        

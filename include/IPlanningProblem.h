@@ -62,7 +62,7 @@ class IPlanningProblem {
         // Gets amount of actions in this problem
         virtual int getActionCount() =0;
 
-        // Gets a list of goal propositions of this problem
+        // Gets a copy of the list of goal propositions of this problem
         virtual std::list<Proposition> getGoal() =0;
 
         // Properties of actions
