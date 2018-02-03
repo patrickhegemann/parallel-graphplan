@@ -261,6 +261,8 @@ void Planner::expand() {
 
     updateActionLayerMutexes(lastPropositionLayer, newActionLayer);
     updatePropLayerMutexes(newPropositionLayer, newActionLayer);
+
+    problem->dumpPlanningGraph();
 }
 
 /**

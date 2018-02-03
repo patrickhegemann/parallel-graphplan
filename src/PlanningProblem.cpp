@@ -1,5 +1,6 @@
 #include <climits>
 #include <assert.h>
+#include <iostream>
 
 #include "Logger.h"
 
@@ -200,6 +201,82 @@ int PlanningProblem::getPropLayerAfterActionLayer(int actionLayer) {
 
 int PlanningProblem::getActionLayerBeforePropLayer(int propLayer) {
     return propLayer - 1;
+}
+
+void PlanningProblem::dumpPlanningGraph() {
+    // Output format:
+    // 1. Node labels (proposition names, action names) & edges:
+    //      [PROP/ACTION]LABEL <labelnr> <label>
+    //          PROPLABEL 1 robby-at-rooma
+    //          PROBLABEL 2 robby-at-roomb
+    //          ACTIONLABEL 1 move-a-b
+    //      EDGE [PREC/POS/NEG] <propnr> <actionnr>
+    //          EDGE PREC 1 1
+    //          EDGE POS 1 1
+    //
+    // 2.For each layer:
+    // 2a. Layer
+    //      [PROP/ACTION]LAYER <layernr> <prop/action count>
+    //          PROPLAYER 1 4
+    //          ACTIONLAYER 1 5
+    //
+    // 2b. Nodes
+    //      [PROP/ACTION]NODE <labelnr>
+    //          PROPNODE 1
+    //          ACTIONNODE 4
+    
+    std::cout << "PLANNING GRAPH" << std::endl;
+
+    int labelcounter = 0;
+    for (int var = 0; var < countVariables; var++) {
+        for (int val = 0; val < variableDomainSize[var]; val++) {
+            std::cout << "PROPLABEL " << labelcounter << " " << propNames[Proposition(var, val)] << std::endl;
+            labelcounter++;
+        }
+    }
+
+    for (Action a = 0; a < countActions; a++) {
+        std::cout << "ACTIONLABEL " << a << " " << actionNames[a] << std::endl;
+        std::list<Proposition> precs = getActionPreconditions(a);
+        std::list<Proposition> pos = getActionPosEffects(a);
+        std::list<Proposition> neg = getActionNegEffects(a);
+
+        for (Proposition p : precs) {
+            int propNumber = variableMutexIndex[p.first]+p.second;
+            std::cout << "EDGE PREC " << propNumber << " " << a << std::endl;
+        }        
+
+        for (Proposition p : pos) {
+            int propNumber = variableMutexIndex[p.first]+p.second;
+            std::cout << "EDGE POS " << propNumber << " " << a << std::endl;
+        }        
+
+        for (Proposition p : neg) {
+            int propNumber = variableMutexIndex[p.first]+p.second;
+            std::cout << "EDGE NEG " << propNumber << " " << a << std::endl;
+        }        
+    }
+
+
+    for (int i = getFirstLayer(); i <= getLastLayer(); i++) {
+        std::list<Proposition> props = getLayerPropositions(i);
+        std::cout << "PROPLAYER " << i << " " << props.size() << std::endl;
+        for (Proposition p : props) {
+            int propNumber = variableMutexIndex[p.first]+p.second;
+            std::cout << "PROPNODE " << propNumber << std::endl;
+        }
+        
+        
+        if (i <= getLastActionLayer()) {
+            std::list<Action> actions = getLayerActions(i);
+            std::cout << "ACTIONLAYER " << i << " " << actions.size() << std::endl;
+            for (Action a : actions) {
+                std::cout << "ACTIONNODE " << a << std::endl;
+            }
+        }
+    }
+
+    std::cout << "END PLANNING GRAPH" << std::endl;
 }
 
 

@@ -62,6 +62,8 @@ class PlanningProblem : public IPlanningProblem {
         int getPropLayerAfterActionLayer(int actionLayer);
         int getActionLayerBeforePropLayer(int propLayer);
 
+        void dumpPlanningGraph();
+
     private:
         // Amount of variables in the problem
         int countVariables;
