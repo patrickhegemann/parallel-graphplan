@@ -22,12 +22,14 @@
 #include "ParallelGP.h"
 
 
+Settings* settings;
+
 int main(int argc, char *argv[]) {
     // Get command line arguments
-    Settings settings(argc, (char**)argv);
+    settings = new Settings(argc, (char**)argv);
 
-    setVerbosityLevel(settings.getVerbosityLevel());
-    if (settings.getInputFile() == nullptr) {
+    setVerbosityLevel(settings->getVerbosityLevel());
+    if (settings->getInputFile() == nullptr) {
         exitError("No input file given\n");
     }
 
@@ -39,7 +41,7 @@ int main(int argc, char *argv[]) {
     PlanningProblem::Builder builder;
     parser.setProblemBuilder(&builder);
 
-    IPlanningProblem *problem = parser.parse(settings.getInputFile());
+    IPlanningProblem *problem = parser.parse(settings->getInputFile());
     log(1, "Parsing done\n");
 
     // Find a plan, then verify and print it

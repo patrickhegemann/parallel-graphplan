@@ -1,3 +1,4 @@
 bin/
 testing/output.sas
 **/__pycache__/
+**/.idea/

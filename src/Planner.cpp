@@ -5,6 +5,7 @@
 
 #include "Planner.h"
 #include "Logger.h"
+#include "Settings.h"
 
 
 Planner::Planner(IPlanningProblem *problem) {
@@ -262,7 +263,9 @@ void Planner::expand() {
     updateActionLayerMutexes(lastPropositionLayer, newActionLayer);
     updatePropLayerMutexes(newPropositionLayer, newActionLayer);
 
-    problem->dumpPlanningGraph();
+    if (settings->getDumpPlanningGraph()) {
+        problem->dumpPlanningGraph();
+    }
 }
 
 /**
