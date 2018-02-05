@@ -13,18 +13,23 @@ Planner::Planner(IPlanningProblem *problem) {
 }
 
 int Planner::isNogood(int layer, std::list<Proposition> props) {
+    log(2, "Checking for nogood in layer %d\n", layer);
+    for (Proposition prop : props) {
+        log(4, "\t%d = %d\n", prop.first, prop.second);
+    }
+
     // No nogoods added for specified layer -> can't be a nogood
     if (nogoods.size() <= (unsigned int) layer) return false;
 
     unsigned int propsFoundInNogood = 0;
 
-    for (unsigned int i = 0; i < nogoods[layer].size(); i++) {
-        int variable = nogoods[layer][2*i];
-        int value = nogoods[layer][2*i+1];
+    for (unsigned int i = 0; i < nogoods[layer].size(); i+=2) {
+        int variable = nogoods[layer][i];
+        int value = nogoods[layer][i+1];
         Proposition p(variable, value);
 
         // Next nogood -> reset
-        if (variable == 0) {
+        if (variable == NOGOOD_SEPARATOR) {
             // Exactly the propositions found in this nogood
             if (propsFoundInNogood == props.size()) {
                 //std::cout << "nogood found" << std::endl;
@@ -45,6 +50,8 @@ int Planner::isNogood(int layer, std::list<Proposition> props) {
 }
 
 void Planner::addNogood(int layer, std::list<Proposition> props) {
+    log(2, "Adding a nogood in layer %d\n", layer);
+
     //TODO: Proper logging
     /*
     std::cout << "New nogood in layer " << layer << ": ";
@@ -410,7 +417,10 @@ int Planner::extract(std::list<Proposition> goal, int layer, Plan& plan) {
 
     // This sub-goal has failed before
     // TODO: share with other threads (receive)
-    if (isNogood(layer, goal)) return 0;
+    if (isNogood(layer, goal)) {
+        log(3, "Nogood found\n");
+        return 0;
+    }
 
     // Perform the graphplan search
     std::list<Action> actions;

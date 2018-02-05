@@ -9,7 +9,7 @@
 #include "Plan.h"
 
 
-#define NOGOOD_SEPARATOR 0
+#define NOGOOD_SEPARATOR -1
 
 
 /**
