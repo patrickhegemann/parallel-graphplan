@@ -1,6 +1,10 @@
 #ifndef _PARALLELGP_SETTINGS_H
 #define _PARALLELGP_SETTINGS_H
 
+#include "Settings.h"
+#include "ParameterProcessor.h"
+#include "Logger.h"
+
 
 class Settings {
     private:
@@ -10,11 +14,29 @@ class Settings {
 
     public:
         Settings();
-	    Settings(int argc, char **argv);
+        Settings(int argc, char **argv) {
+            ParameterProcessor pp;
+            pp.init(argc, argv);
 
-        int getVerbosityLevel();
-        const char* getInputFile();
-        int getDumpPlanningGraph();
+            inputFile = pp.getFilename();
+            verbosityLevel = pp.getIntParam("v", 0);
+            dumpPlanningGraph = pp.isSet("dump");
+
+            log(0, "Parameters: ");
+            pp.printParams();
+        }
+
+        int getVerbosityLevel() {
+            return verbosityLevel;
+        }
+
+        const char* getInputFile() {
+            return inputFile;
+        }
+
+        int getDumpPlanningGraph() {
+            return dumpPlanningGraph;
+        }
 };
 
 extern Settings *settings;
