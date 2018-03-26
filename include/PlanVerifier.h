@@ -12,7 +12,7 @@ class PlanVerifier {
     public:
         PlanVerifier(IPlanningProblem *problem, Plan plan);
         int verify();
-        int simulateStep(std::list<Action> step);
+        int simulateStep(std::list<Action> step, int layerNumber);
         int checkGoal();
 
     private:

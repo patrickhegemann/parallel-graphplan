@@ -49,6 +49,18 @@ int main(int argc, char *argv[]) {
     if (findPlan(problem, plan)) {
         printPlan(problem, plan);
         verifyPlan(problem, plan);
+    } else {
+        // DEBUG
+        Plan mockPlan;
+        mockPlan.addLayer(std::list<Action>{54, 51});
+        mockPlan.addLayer(std::list<Action>{40});
+        mockPlan.addLayer(std::list<Action>{38, 35});
+        mockPlan.addLayer(std::list<Action>{41});
+        mockPlan.addLayer(std::list<Action>{46, 43});
+        mockPlan.addLayer(std::list<Action>{40});
+        mockPlan.addLayer(std::list<Action>{30, 27});
+        verifyPlan(problem, mockPlan);
+        // END DEBUG
     }
 
     return 0;
@@ -95,7 +107,7 @@ void printPlan(IPlanningProblem *problem, Plan plan) {
         std::list<Action> layer = plan.getLayerActions(layerNumber);
         for (Action action : layer) {
             if (!problem->isTrivialAction(action))  {
-                log(0, "%d\t%d\t%s\n", layerNumber, step, problem->getActionName(action).c_str());
+                log(0, "%d\t%d\t%s\n", layerNumber+1, step+1, problem->getActionName(action).c_str());
                 step++;
             }
         }

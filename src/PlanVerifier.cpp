@@ -27,12 +27,13 @@ PlanVerifier::PlanVerifier(IPlanningProblem *problem, Plan plan) {
 int PlanVerifier::verify() {
     //for (int layerNumber = problem->getFirstLayer(); layerNumber <= problem->getLastLayer(); layerNumber++) {
     for (int layerNumber = 0; layerNumber < plan.getLayerCount(); layerNumber++) {
-        log(4, "Verifying layer number %d\n", layerNumber);
+        log(4, "Verifying layer number %d\n", layerNumber+1);
         std::list<Action> layer = plan.getLayerActions(layerNumber);
         for (auto a : layer) {
             log(4, "\t%s\n", problem->getActionName(a).c_str());
         }
-        if (!simulateStep(layer)) return false;
+        // +1 because of mutex checking, in the real algorithm layer 1 is the first layer, not 0
+        if (!simulateStep(layer, problem->getFirstLayer()+layerNumber)) return false;
     }
 
     return checkGoal();
@@ -41,7 +42,7 @@ int PlanVerifier::verify() {
 /**
  * Simulates a step of the plan
  */
-int PlanVerifier::simulateStep(std::list<int> step) {
+int PlanVerifier::simulateStep(std::list<int> step, int layerNumber) {
     log(4, "Simulating a step\n");
 
     std::list<Proposition> adding;
@@ -71,10 +72,39 @@ int PlanVerifier::simulateStep(std::list<int> step) {
 
     // Applying effects of actions to state
     for (Proposition a : adding) {
+        log(4, "Adding proposition \"%s\" (%d,%d)\n",
+                problem->getPropositionName(a).c_str(), a.first, a.second);
+
+        // Set the value of a variable to the new value, i.e. erase all propositions that
+        // have the variable set to a different value
+        for (Proposition b : state) {
+            if (b.first == a.first && b.second != a.second) {
+                state.erase(b);
+            }
+        }
         state.insert(a);
     }
+
     for (Proposition r : removing) {
+        log(4, "Removing proposition \"%s\" (%d,%d)\n",
+                problem->getPropositionName(r).c_str(), r.first, r.second);
         state.erase(r);
+    }
+
+    // Check if any 2 propositions in the state are mutex
+    for (Proposition p : state) {
+        for (Proposition q : state) {
+            if (p == q) break;
+            int propLayer = problem->getPropLayerAfterActionLayer(layerNumber);
+            if (problem->isMutexProp(p, q, propLayer)) {
+                log(4, "Verifier Error: Propositions \"%s\" (%d,%d) and \"%s\" (%d,%d) are mutex in layer %d\n",
+                        problem->getPropositionName(p).c_str(), p.first, p.second,
+                        problem->getPropositionName(q).c_str(), q.first, q.second,
+                        propLayer
+                   );
+                return false;
+            }
+        }
     }
 
     return true;
