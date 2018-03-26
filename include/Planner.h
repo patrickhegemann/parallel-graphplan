@@ -22,6 +22,12 @@ class Planner {
         Planner(IPlanningProblem *problem);
         int graphplan(Plan& plan);
 
+        // Returns if the given combination of propositions is a nogood at the specified layer
+        int isNogood(int layer, std::list<Proposition> props);
+        // Set the given combination of propositions as a new nogood at the specified layer
+        void addNogood(int layer, std::list<Proposition> props);
+        void dumpNogoods();
+
     private:
         IPlanningProblem *problem;
 
@@ -61,11 +67,6 @@ class Planner {
         // Looks for actions to take in order to achieve the given goal
         // Calls itself and extract recursively
         int gpSearch(std::list<Proposition> goal, std::list<Action> actions, int layer, Plan& plan);
-
-        // Returns if the given combination of propositions is a nogood at the specified layer
-        int isNogood(int layer, std::list<Proposition> props);
-        // Set the given combination of propositions as a new nogood at the specified layer
-        void addNogood(int layer, std::list<Proposition> props);
 };
 
 #endif

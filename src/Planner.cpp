@@ -2,6 +2,7 @@
 #include <iterator>
 #include <climits>
 #include <algorithm>
+#include <set>
 
 #include "Planner.h"
 #include "Logger.h"
@@ -18,20 +19,28 @@ int Planner::isNogood(int layer, std::list<Proposition> props) {
         log(4, "\t%d = %d\n", prop.first, prop.second);
     }
 
+    std::set<Proposition> propSet(props.begin(), props.end());
+
     // No nogoods added for specified layer -> can't be a nogood
     if (nogoods.size() <= (unsigned int) layer) return false;
 
     unsigned int propsFoundInNogood = 0;
 
+    int resetState = 0;
+
     for (unsigned int i = 0; i < nogoods[layer].size(); i+=2) {
         int variable = nogoods[layer][i];
         int value = nogoods[layer][i+1];
+
+        if ((variable != -1 || value != -1) && resetState) continue;
+        resetState = 0;
+
         Proposition p(variable, value);
 
         // Next nogood -> reset
         if (variable == NOGOOD_SEPARATOR) {
             // Exactly the propositions found in this nogood
-            if (propsFoundInNogood == props.size()) {
+            if (propsFoundInNogood >= propSet.size()) {
                 //std::cout << "nogood found" << std::endl;
                 return true;
             }
@@ -40,9 +49,14 @@ int Planner::isNogood(int layer, std::list<Proposition> props) {
         }
 
         // Check if the proposition is one of our wanted propositions
-        if (std::find(props.begin(), props.end(), p) != props.end()) {
+        if (std::find(propSet.begin(), propSet.end(), p) != propSet.end()) {
             //std::cout << p << std::endl;
             propsFoundInNogood++;
+        } else {
+            // Otherwise reset
+            propsFoundInNogood = 0;
+            resetState = 1;
+            continue;
         }
     }
 
@@ -77,6 +91,18 @@ void Planner::addNogood(int layer, std::list<Proposition> props) {
     nogoods[layer].push_back(NOGOOD_SEPARATOR);
 
     countNogoods[layer]++;
+}
+
+void Planner::dumpNogoods() {
+    int layer = 0;
+    for (auto n : nogoods) {
+        log(0, "Layer %d: ", layer);
+        for (auto x : n) {
+            std::cout << x << " ";
+        }
+        std::cout << std::endl;
+        layer++;
+    }
 }
 
 /**
@@ -173,7 +199,7 @@ int Planner::graphplan(Plan& plan) {
     // If fixed point is reached, we have theoretically expanded beyond it, just to find out.
     // So we subtract that additional layer again
     int lastLayer = problem->getLastLayer();
-    if (fixedPoint) lastLayer--;
+    //if (fixedPoint) lastLayer--;
     int success = extract(goal, lastLayer, plan);
 
     // Keep track of how many nogoods exist, so we can determine if any are added during an iteration
@@ -181,18 +207,18 @@ int Planner::graphplan(Plan& plan) {
 
     while(!success) {
         // Expand for one more layer
-        if (!fixedPoint) {
+        //if (!fixedPoint) {
             expand();
             fixedPoint = checkFixedPoint();
-        }
+        //}
 
         // Clean up, start with a fresh empty plan
         plan.clear();
 
         // Do backwards search with given goal propositions
         lastLayer = problem->getLastLayer();
-        if (fixedPoint) lastLayer--;    // about the -1 see above
-        int success = extract(goal, lastLayer, plan);
+        //if (fixedPoint) lastLayer--;    // about the -1 see above
+        success = extract(goal, lastLayer, plan);
 
         if ((!success) && fixedPoint) {
             if (lastNogoodCount == countNogoods[problem->getLastLayer()]) {
@@ -207,7 +233,7 @@ int Planner::graphplan(Plan& plan) {
 
 void Planner::expand() {
     log(2, "Expanding graph\n");
-    
+
     int lastPropositionLayer = problem->getLastLayer();
 
     int newPropositionLayer = problem->addPropositionLayer();
@@ -231,10 +257,9 @@ void Planner::expand() {
     countNogoods.push_back(0);
 
     // Add actions
-    // TODO: Not a very clean loop
+    // TODO: Not a very clean loop, use a list of unused actions instead
     for(Action action = 0; action < problem->getActionCount(); action++) {
         // Only check disabled actions
-        // TODO: Potential for optimization: use a list of unused actions
         if (problem->isActionEnabled(action, newActionLayer-1)) continue;
 
         bool enable = true;
@@ -255,7 +280,6 @@ void Planner::expand() {
                     break;
                 }
             }
-            
             if (!enable) break;
         }
 
@@ -370,12 +394,34 @@ int Planner::checkActionsMutex(Action a, Action b) {
     for (Proposition neg : problem->getActionNegEffects(a)) {
         // Check if negative effects collide with preconditions
         for (Proposition prec : problem->getActionPreconditions(b)) {
-            if (neg == prec) return true;
+            if (neg == prec) {
+                log(5, "Neg \"%s\" and Prec \"%s\" colliding\n",
+                        problem->getPropositionName(neg).c_str(),
+                        problem->getPropositionName(prec).c_str());
+                return true;
+            }   
         }
 
         // Check if negative effects collide with positive effects
         for (Proposition pos : problem->getActionPosEffects(b)) {
-            if (neg == pos) return true;
+            if (neg == pos) {
+                log(5, "Neg \"%s\" and Pos \"%s\" colliding\n",
+                        problem->getPropositionName(neg).c_str(),
+                        problem->getPropositionName(pos).c_str());
+                return true;
+            }
+        }
+    }
+
+    // Check if positive effects coĺlide
+    for (Proposition aPos : problem->getActionPosEffects(a)) {
+        for (Proposition bPos : problem->getActionPosEffects(b)) {
+            if (problem->isMutexProp(aPos, bPos, INT_MAX)) {
+                log(5, "Pos \"%s\" and Pos \"%s\" colliding\n",
+                        problem->getPropositionName(aPos).c_str(),
+                        problem->getPropositionName(bPos).c_str());
+                return true;
+            }
         }
     }
 
@@ -391,7 +437,12 @@ int Planner::checkActionsMutex(Action a, Action b) {
 int Planner::checkActionPrecsMutex(int a, int b, int propLayer) {
     for (Proposition p : problem->getActionPreconditions(a)) {
         for (Proposition q : problem->getActionPreconditions(b)) {
+            if (p == q) continue;
             if (problem->isMutexProp(p, q, propLayer)) {
+                log(5, "Action preconditions \"%s\" and \"%s\" are mutex in layer %d\n",
+                        problem->getPropositionName(p).c_str(),
+                        problem->getPropositionName(q).c_str(),
+                        propLayer);
                 return true;
             }
         }
@@ -475,10 +526,12 @@ int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, in
 
     // Get providers (actions) of p
     std::list<Action> providers;
+    log(5, "nextProp: %s\n", problem->getPropositionName(nextProp).c_str());
     for (Action provider : problem->getPropPosActions(nextProp)) {
+        log(5, "\t%s\n", problem->getActionName(provider).c_str());
         // Check if provider is enabled and if not, skip provider
         if (!(problem->isActionEnabled(provider, actionLayer))
-                || problem->getActionFirstLayer(provider) > layer) {
+                || problem->getActionFirstLayer(provider) > actionLayer) {
             continue;
         }
 

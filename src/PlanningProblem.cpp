@@ -68,10 +68,6 @@ int PlanningProblem::addPropositionLayer() {
     if (lastPropIndices.empty()) {
         lastPropIndices.push_back(-1);
     } else {
-        //lastPropIndices.push_back(lastPropIndices[lastPropLayer]);
-        for (auto x : lastPropIndices) {
-            log(4, "x = %d\n", x);
-        }
         lastPropIndices.push_back(lastPropIndices.back());
     }
     lastPropLayer++;
@@ -139,17 +135,17 @@ std::list<Proposition> PlanningProblem::getLayerPropositions(int layer) {
 std::list<Action> PlanningProblem::getLayerActions(int layer) {
     auto end = layerActions.begin() + lastActionIndices[layer] + 1;
     std::list<Action> acts(layerActions.begin(), end);
-    log(4, "Hello?\n");
-    for (auto a : acts) {
-        log(4, "a = %s\n", actionNames[a].c_str());
-    }
     return acts;
-    //return std::list<Action>(layerActions.begin(), end);
 }
 
 int PlanningProblem::isMutexProp(Proposition p, Proposition q, int layer) {
     int pMutexNumber = variableMutexIndex[p.first]+p.second;
     int qMutexNumber = variableMutexIndex[q.first]+q.second;
+    log(5, "totalPropositionCount = %d\n", totalPropositionCount);
+    log(5, "propMutex entry: %d\n", propMutexes[pMutexNumber*totalPropositionCount + qMutexNumber]);
+    log(5, "p.first = %d, q.first = %d\n", p.first, q.first);
+    log(5, "index: %d\n", pMutexNumber*totalPropositionCount + qMutexNumber);
+    if (p == q) return false;
     return (propMutexes[pMutexNumber*totalPropositionCount + qMutexNumber] >= layer ||
         p.first == q.first);
 }
@@ -157,10 +153,12 @@ int PlanningProblem::isMutexProp(Proposition p, Proposition q, int layer) {
 int PlanningProblem::isMutexAction(Action a, Action b, int layer) {
     log(5, "Checking if actions \"%s\" and \"%s\" are mutex in layer %d\n", actionNames[a].c_str(), actionNames[b].c_str(), layer);
     log(5, "result: %d\n", (actionMutexes[a*countActions + b] >= layer));
+    if (a == b) return false;
     return actionMutexes[a*countActions + b] >= layer;
 }
 
 void PlanningProblem::setMutexProp(Proposition p, Proposition q, int layer) {
+    if (p == q) return;
     if (layer < INT_MAX && !isMutexProp(p, q, layer)) {
         layerPropMutexCount[layer]++;
     }
@@ -174,6 +172,7 @@ void PlanningProblem::setMutexProp(Proposition p, Proposition q, int layer) {
 }
 
 void PlanningProblem::setMutexAction(Action a, Action b, int layer) {
+    if (a == b) return;
     actionMutexes[a*countActions + b] = layer;
     actionMutexes[b*countActions + a] = layer;
     log(2, "Actions \"%s\" and \"%s\" are now mutex in layer %d\n", actionNames[a].c_str(), actionNames[b].c_str(), layer);
@@ -479,6 +478,7 @@ void PlanningProblem::Builder::finalizeVariables() {
     }
 
     log(2, "Finalizing variables (There are %d propositions)\n", totalPropositionCount);
+    problem->totalPropositionCount = totalPropositionCount;
 
     // Allocate matrix for mutexes
     problem->propMutexes = new int[totalPropositionCount*totalPropositionCount];
