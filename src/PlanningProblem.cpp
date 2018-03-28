@@ -21,6 +21,14 @@ int PlanningProblem::getActionCount() {
     return countActions;
 }
 
+int PlanningProblem::getPropositionCount() {
+    return totalPropositionCount;
+}
+
+int PlanningProblem::getPropositionNumber(Proposition p) {
+    return variableMutexIndex[p.first] + p.second;
+}
+
 std::list<Proposition> PlanningProblem::getGoal() {
     return std::list<Proposition>(goalPropositions);
 }
@@ -53,6 +61,10 @@ int PlanningProblem::getFirstLayer() {
 
 int PlanningProblem::getLastLayer() {
     return lastPropLayer;
+}
+
+int PlanningProblem::getFirstActionLayer() {
+    return 1;
 }
 
 int PlanningProblem::getLastActionLayer() {

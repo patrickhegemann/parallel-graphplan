@@ -20,7 +20,8 @@
 class Planner {
     public:
         Planner(IPlanningProblem *problem);
-        int graphplan(Plan& plan);
+        virtual ~Planner() {}
+        virtual int graphplan(Plan& plan);
 
         // Returns if the given combination of propositions is a nogood at the specified layer
         int isNogood(int layer, std::list<Proposition> props);
@@ -28,7 +29,7 @@ class Planner {
         void addNogood(int layer, std::list<Proposition> props);
         void dumpNogoods();
 
-    private:
+    protected:
         IPlanningProblem *problem;
 
         // Is the fixed point reached?

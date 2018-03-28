@@ -61,6 +61,10 @@ class IPlanningProblem {
         virtual int getVariableCount() =0;
         // Gets amount of actions in this problem
         virtual int getActionCount() =0;
+        // Gets amount of propositions in this problem
+        virtual int getPropositionCount() =0;
+        // Gets the proposition number of a proposition (variable and value)
+        virtual int getPropositionNumber(Proposition p) =0;
 
         // Gets a copy of the list of goal propositions of this problem
         virtual std::list<Proposition> getGoal() =0;
@@ -79,6 +83,8 @@ class IPlanningProblem {
         virtual int getFirstLayer() =0;
         // Gets the number of the last proposition layer
         virtual int getLastLayer() =0;
+        // Gets the number of the first action layer
+        virtual int getFirstActionLayer() =0;
         // Gets the number of the last action layer
         virtual int getLastActionLayer() =0;
         // Adds a proposition layer to the planning graph and returns its number

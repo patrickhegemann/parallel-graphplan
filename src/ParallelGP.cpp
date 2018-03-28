@@ -14,10 +14,12 @@
 #include "Plan.h"
 #include "PlanningProblem.h"
 #include "Parser.h"
-#include "Planner.h"
 #include "PlanVerifier.h"
 #include "Settings.h"
 #include "Logger.h"
+
+#include "Planners/PlannerWithSATExtraction.h"
+#include "Planners/Planner.h"
 
 #include "ParallelGP.h"
 
@@ -49,18 +51,6 @@ int main(int argc, char *argv[]) {
     if (findPlan(problem, plan)) {
         printPlan(problem, plan);
         verifyPlan(problem, plan);
-    } else {
-        // DEBUG
-        Plan mockPlan;
-        mockPlan.addLayer(std::list<Action>{54, 51});
-        mockPlan.addLayer(std::list<Action>{40});
-        mockPlan.addLayer(std::list<Action>{38, 35});
-        mockPlan.addLayer(std::list<Action>{41});
-        mockPlan.addLayer(std::list<Action>{46, 43});
-        mockPlan.addLayer(std::list<Action>{40});
-        mockPlan.addLayer(std::list<Action>{30, 27});
-        verifyPlan(problem, mockPlan);
-        // END DEBUG
     }
 
     return 0;
@@ -70,8 +60,16 @@ int findPlan(IPlanningProblem *problem, Plan& plan) {
     log(1, "Searching plan...\n");
 
     // Call planner
-    Planner planner(problem);
-    int success = planner.graphplan(plan);
+    Planner *planner;
+    std::string plannerName = settings->getPlannerName();
+    if (plannerName == "standard") {
+        planner = new Planner(problem);
+    } else if (plannerName == "satex") {
+        planner = new PlannerWithSATExtraction(problem);
+    }
+    int success = planner->graphplan(plan);
+
+    delete planner;
 
     // No plan
     if (!success) {

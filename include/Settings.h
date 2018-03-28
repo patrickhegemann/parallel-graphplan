@@ -1,6 +1,8 @@
 #ifndef _PARALLELGP_SETTINGS_H
 #define _PARALLELGP_SETTINGS_H
 
+#include <string>
+
 #include "Settings.h"
 #include "ParameterProcessor.h"
 #include "Logger.h"
@@ -11,6 +13,7 @@ class Settings {
         int verbosityLevel;
         const char *inputFile;
         int dumpPlanningGraph = 0;
+        std::string plannerName;
 
     public:
         Settings();
@@ -21,6 +24,7 @@ class Settings {
             inputFile = pp.getFilename();
             verbosityLevel = pp.getIntParam("v", 0);
             dumpPlanningGraph = pp.isSet("dump");
+            plannerName = pp.getParam("p", "standard");
 
             log(0, "Parameters: ");
             pp.printParams();
@@ -36,6 +40,10 @@ class Settings {
 
         int getDumpPlanningGraph() {
             return dumpPlanningGraph;
+        }
+
+        std::string getPlannerName() {
+            return plannerName;
         }
 };
 

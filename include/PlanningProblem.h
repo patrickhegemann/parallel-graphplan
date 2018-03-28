@@ -21,6 +21,8 @@ class PlanningProblem : public IPlanningProblem {
 
         int getVariableCount();
         int getActionCount();
+        int getPropositionCount();
+        int getPropositionNumber(Proposition p);
 
         std::list<Proposition> getGoal();
 
@@ -32,6 +34,7 @@ class PlanningProblem : public IPlanningProblem {
         
         int getFirstLayer();
         int getLastLayer();
+        int getFirstActionLayer();
         int getLastActionLayer();
         int addPropositionLayer();
         int addActionLayer();

@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <set>
 
-#include "Planner.h"
+#include "Planners/Planner.h"
 #include "Logger.h"
 #include "Settings.h"
 
@@ -41,7 +41,6 @@ int Planner::isNogood(int layer, std::list<Proposition> props) {
         if (variable == NOGOOD_SEPARATOR) {
             // Exactly the propositions found in this nogood
             if (propsFoundInNogood >= propSet.size()) {
-                //std::cout << "nogood found" << std::endl;
                 return true;
             }
             propsFoundInNogood = 0;
@@ -50,7 +49,6 @@ int Planner::isNogood(int layer, std::list<Proposition> props) {
 
         // Check if the proposition is one of our wanted propositions
         if (std::find(propSet.begin(), propSet.end(), p) != propSet.end()) {
-            //std::cout << p << std::endl;
             propsFoundInNogood++;
         } else {
             // Otherwise reset
@@ -65,15 +63,6 @@ int Planner::isNogood(int layer, std::list<Proposition> props) {
 
 void Planner::addNogood(int layer, std::list<Proposition> props) {
     log(2, "Adding a nogood in layer %d\n", layer);
-
-    //TODO: Proper logging
-    /*
-    std::cout << "New nogood in layer " << layer << ": ";
-    for (int p : props) {
-        std::cout << p << ", ";
-    }
-    std::cout << std::endl;
-    */
 
     // Add vectors to the nogood table until we have sufficiently many layers
     while (nogoods.size() <= (unsigned int) layer) {
@@ -207,10 +196,8 @@ int Planner::graphplan(Plan& plan) {
 
     while(!success) {
         // Expand for one more layer
-        //if (!fixedPoint) {
-            expand();
-            fixedPoint = checkFixedPoint();
-        //}
+        expand();
+        fixedPoint = checkFixedPoint();
 
         // Clean up, start with a fresh empty plan
         plan.clear();
