@@ -276,6 +276,12 @@ void Planner::expand() {
         // Add the action
         // Enable action in next layer
         problem->activateAction(action, newActionLayer);
+        // Check for general mutexes that are independent on the layer
+        for (Action b : problem->getLayerActions(newActionLayer)) {
+            if (checkActionsMutex(action, b) || checkActionsMutex(b, action)) {
+                problem->setMutexAction(action, b, INT_MAX);
+            }
+        }
     }
 
     updateActionLayerMutexes(lastPropositionLayer, newActionLayer);
@@ -316,11 +322,16 @@ void Planner::updateActionLayerMutexes(int prevPropLayer, int actionLayer) {
     std::list<Action> actions = problem->getLayerActions(actionLayer);
     for (Action a : actions) {
         for (Action b : actions) {
-            if (a == b) break;
+            if (a == b || problem->isMutexAction(a, b, actionLayer)) break;
+            /*
             if (checkActionsMutex(a, b)
                     || checkActionsMutex(b, a)
                     || checkActionPrecsMutex(a, b, prevPropLayer)) {
                 // Set a new mutex
+                problem->setMutexAction(a, b, actionLayer);
+            }
+            */
+            if (checkActionPrecsMutex(a, b, prevPropLayer)) {
                 problem->setMutexAction(a, b, actionLayer);
             }
         }
@@ -382,9 +393,11 @@ int Planner::checkActionsMutex(Action a, Action b) {
         // Check if negative effects collide with preconditions
         for (Proposition prec : problem->getActionPreconditions(b)) {
             if (neg == prec) {
+                /*
                 log(5, "Neg \"%s\" and Prec \"%s\" colliding\n",
                         problem->getPropositionName(neg).c_str(),
                         problem->getPropositionName(prec).c_str());
+                        */
                 return true;
             }   
         }
@@ -392,9 +405,11 @@ int Planner::checkActionsMutex(Action a, Action b) {
         // Check if negative effects collide with positive effects
         for (Proposition pos : problem->getActionPosEffects(b)) {
             if (neg == pos) {
+                /*
                 log(5, "Neg \"%s\" and Pos \"%s\" colliding\n",
                         problem->getPropositionName(neg).c_str(),
                         problem->getPropositionName(pos).c_str());
+                        */
                 return true;
             }
         }
@@ -404,9 +419,11 @@ int Planner::checkActionsMutex(Action a, Action b) {
     for (Proposition aPos : problem->getActionPosEffects(a)) {
         for (Proposition bPos : problem->getActionPosEffects(b)) {
             if (problem->isMutexProp(aPos, bPos, INT_MAX)) {
+                /*
                 log(5, "Pos \"%s\" and Pos \"%s\" colliding\n",
                         problem->getPropositionName(aPos).c_str(),
                         problem->getPropositionName(bPos).c_str());
+                        */
                 return true;
             }
         }
@@ -426,11 +443,13 @@ int Planner::checkActionPrecsMutex(int a, int b, int propLayer) {
         for (Proposition q : problem->getActionPreconditions(b)) {
             if (p == q) continue;
             if (problem->isMutexProp(p, q, propLayer)) {
+                /*
                 log(5, "Action preconditions \"%s\" and \"%s\" are mutex in layer %d\n",
                         problem->getPropositionName(p).c_str(),
                         problem->getPropositionName(q).c_str(),
                         propLayer);
                 return true;
+                */
             }
         }
     }

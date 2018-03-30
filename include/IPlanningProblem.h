@@ -108,7 +108,7 @@ class IPlanningProblem {
         // Gets a list of propositions in a given layer
         virtual std::list<Proposition> getLayerPropositions(int layer) =0;
         // Gets a list of actions in a given layer
-        virtual std::list<Action> getLayerActions(int layer) =0;
+        virtual std::list<Action>& getLayerActions(int layer) =0;
 
         // Mutex Handling
         // Checks if two propositions are mutex in a given layer

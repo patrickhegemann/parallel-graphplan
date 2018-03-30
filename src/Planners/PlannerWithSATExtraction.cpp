@@ -194,7 +194,7 @@ int PlannerWithSATExtraction::extract(std::list<Proposition> goal, int layer, Pl
  */
 int PlannerWithSATExtraction::propositionAtLayer(Proposition p, int layer) {
     int r = (countPropositions + countActions) * (layer - 2) + countActions + 1 + problem->getPropositionNumber(p);
-    log(4, "prop at layer %d, %s = %d\n", layer, problem->getPropositionName(p).c_str(), r);
+    //log(4, "prop at layer %d, %s = %d\n", layer, problem->getPropositionName(p).c_str(), r);
     return r;
 }
 
@@ -203,7 +203,7 @@ int PlannerWithSATExtraction::propositionAtLayer(Proposition p, int layer) {
  */
 int PlannerWithSATExtraction::actionAtLayer(Action a, int layer) {
     int r = (countPropositions + countActions) * (layer - 1) + 1 + a;
-    log(4, "action at layer %d, %s = %d\n", layer, problem->getActionName(a).c_str(), r);
+    //log(4, "action at layer %d, %s = %d\n", layer, problem->getActionName(a).c_str(), r);
     return r;
 }
 

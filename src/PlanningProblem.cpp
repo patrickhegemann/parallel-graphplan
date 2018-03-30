@@ -104,6 +104,10 @@ int PlanningProblem::addActionLayer() {
         lastActionIndices.push_back(-1);
     } else {
         lastActionIndices.push_back(lastActionIndices.back());
+        // Update lists representations of layerActions
+        auto end = layerActions.begin() + lastActionIndices[lastActionLayer] + 1;
+        std::list<Action> acts(layerActions.begin(), end);
+        layerActionsLists.push_back(acts);
     }
     lastActionLayer++;
 
@@ -125,6 +129,7 @@ int PlanningProblem::getActionFirstLayer(Action a) {
 void PlanningProblem::activateAction(Action a, int layer) {
     lastActionIndices[layer]++;
     layerActions[lastActionIndices[layer]] = a;
+    layerActionsLists[layer-1].push_back(a);
     actionFirstLayer[a] = layer;
 
     // Add positive effects of action to next proposition layer
@@ -153,10 +158,13 @@ std::list<Proposition> PlanningProblem::getLayerPropositions(int layer) {
     return std::list<Proposition>(layerProps.begin(), end);
 }
 
-std::list<Action> PlanningProblem::getLayerActions(int layer) {
+std::list<Action>& PlanningProblem::getLayerActions(int layer) {
+    /*
     auto end = layerActions.begin() + lastActionIndices[layer] + 1;
     std::list<Action> acts(layerActions.begin(), end);
     return acts;
+    */
+    return layerActionsLists[layer-1];
 }
 
 int PlanningProblem::isMutexProp(Proposition p, Proposition q, int layer) {

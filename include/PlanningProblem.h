@@ -48,7 +48,7 @@ class PlanningProblem : public IPlanningProblem {
         void activateProposition(Proposition p, int layer);
 
         std::list<Proposition> getLayerPropositions(int layer);
-        std::list<Action> getLayerActions(int layer);
+        std::list<Action>& getLayerActions(int layer);
 
         // Mutex Handling
         int isMutexProp(Proposition p, Proposition q, int layer);
@@ -130,6 +130,8 @@ class PlanningProblem : public IPlanningProblem {
         // Arrays that store propositions/actions that are already used in some layer
         std::vector<Proposition> layerProps;
         std::vector<Action> layerActions;
+
+        std::vector<std::list<Action>> layerActionsLists;
 
         // Lists that hold an index for each layer, indicating the point up to which a
         // layer contains propositions/actions from the layerProps/layerActions arrays
