@@ -33,25 +33,34 @@ std::list<Proposition> PlanningProblem::getGoal() {
     return std::list<Proposition>(goalPropositions);
 }
 
-std::list<Proposition> PlanningProblem::getActionPreconditions(Action a) {
+std::list<Proposition>& PlanningProblem::getActionPreconditions(Action a) {
+    /*
     auto begin = actionPrecEdges.begin() + actionPrecIndices[a];
     auto end = actionPrecEdges.begin() + actionPrecIndices[a + 1];
     return std::list<Proposition>(begin, end);
+    */
+    return actionPrecs[a];
 }
 
-std::list<Proposition> PlanningProblem::getActionPosEffects(Action a) {
+std::list<Proposition>& PlanningProblem::getActionPosEffects(Action a) {
+    /*
     auto begin = actionPosEffEdges.begin() + actionPosEffIndices[a];
     auto end = actionPosEffEdges.begin() + actionPosEffIndices[a + 1];
     return std::list<Proposition>(begin, end);
+    */
+    return actionPosEffs[a];
 }
 
-std::list<Proposition> PlanningProblem::getActionNegEffects(Action a) {
+std::list<Proposition>& PlanningProblem::getActionNegEffects(Action a) {
+    /*
     auto begin = actionNegEffEdges.begin() + actionNegEffIndices[a];
     auto end = actionNegEffEdges.begin() + actionNegEffIndices[a + 1];
     return std::list<Proposition>(begin, end);
+    */
+    return actionNegEffs[a];
 }
 
-std::list<Action> PlanningProblem::getPropPosActions(Proposition p) {
+std::list<Action>& PlanningProblem::getPropPosActions(Proposition p) {
     return propPosActions[p];
 }
 
@@ -153,18 +162,12 @@ std::list<Action> PlanningProblem::getLayerActions(int layer) {
 int PlanningProblem::isMutexProp(Proposition p, Proposition q, int layer) {
     int pMutexNumber = variableMutexIndex[p.first]+p.second;
     int qMutexNumber = variableMutexIndex[q.first]+q.second;
-    log(5, "totalPropositionCount = %d\n", totalPropositionCount);
-    log(5, "propMutex entry: %d\n", propMutexes[pMutexNumber*totalPropositionCount + qMutexNumber]);
-    log(5, "p.first = %d, q.first = %d\n", p.first, q.first);
-    log(5, "index: %d\n", pMutexNumber*totalPropositionCount + qMutexNumber);
     if (p == q) return false;
     return (propMutexes[pMutexNumber*totalPropositionCount + qMutexNumber] >= layer ||
         p.first == q.first);
 }
 
 int PlanningProblem::isMutexAction(Action a, Action b, int layer) {
-    log(5, "Checking if actions \"%s\" and \"%s\" are mutex in layer %d\n", actionNames[a].c_str(), actionNames[b].c_str(), layer);
-    log(5, "result: %d\n", (actionMutexes[a*countActions + b] >= layer));
     if (a == b) return false;
     return actionMutexes[a*countActions + b] >= layer;
 }
@@ -423,6 +426,11 @@ void PlanningProblem::Builder::setActionCount(int count) {
     problem->actionPosEffIndices.resize(count+1);
     problem->actionNegEffIndices.resize(count+1);
 
+    problem->actionPrecs.resize(count);
+    problem->actionPosEffs.resize(count);
+    problem->actionNegEffs.resize(count);
+
+
     problem->actionFirstLayer.resize(count);
     problem->layerActions.resize(count);
     problem->actionNames.reserve(count);
@@ -456,6 +464,7 @@ void PlanningProblem::Builder::addActionPrecondition(Action a, Proposition p) {
 
     problem->actionPrecIndices[a+1]++;
     problem->actionPrecEdges.push_back(p);
+    problem->actionPrecs[a].push_back(p);
 }
 
 void PlanningProblem::Builder::addActionPosEffect(Action a, Proposition p) {
@@ -463,6 +472,7 @@ void PlanningProblem::Builder::addActionPosEffect(Action a, Proposition p) {
 
     problem->actionPosEffIndices[a+1]++;
     problem->actionPosEffEdges.push_back(p);
+    problem->actionPosEffs[a].push_back(p);
     problem->propPosActions[p].push_back(a);
 }
 
@@ -471,6 +481,7 @@ void PlanningProblem::Builder::addActionNegEffect(Action a, Proposition p) {
 
     problem->actionNegEffIndices[a+1]++;
     problem->actionNegEffEdges.push_back(p);
+    problem->actionNegEffs[a].push_back(p);
 }
 
 /**

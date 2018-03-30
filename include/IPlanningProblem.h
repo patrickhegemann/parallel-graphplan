@@ -71,13 +71,13 @@ class IPlanningProblem {
 
         // Properties of actions
         // Gets a list of preconditions of an action
-        virtual std::list<Proposition> getActionPreconditions(Action a) =0;
+        virtual std::list<Proposition>& getActionPreconditions(Action a) =0;
         // Gets a list of positive/add effects of an action
-        virtual std::list<Proposition> getActionPosEffects(Action a) =0;
+        virtual std::list<Proposition>& getActionPosEffects(Action a) =0;
         // Gets a list of negative/delete effects of an action
-        virtual std::list<Proposition> getActionNegEffects(Action a) =0;
+        virtual std::list<Proposition>& getActionNegEffects(Action a) =0;
         // Gets a list of actions that have the proposition as a positive effect
-        virtual std::list<Action> getPropPosActions(Proposition p) =0;
+        virtual std::list<Action>& getPropPosActions(Proposition p) =0;
 
         // Gets the number of the first proposition layer
         virtual int getFirstLayer() =0;

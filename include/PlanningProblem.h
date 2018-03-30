@@ -27,10 +27,10 @@ class PlanningProblem : public IPlanningProblem {
         std::list<Proposition> getGoal();
 
         // Properties of actions
-        std::list<Proposition> getActionPreconditions(Action a);
-        std::list<Proposition> getActionPosEffects(Action a);
-        std::list<Proposition> getActionNegEffects(Action a);
-        std::list<Action> getPropPosActions(Proposition p);
+        std::list<Proposition>& getActionPreconditions(Action a);
+        std::list<Proposition>& getActionPosEffects(Action a);
+        std::list<Proposition>& getActionNegEffects(Action a);
+        std::list<Action>& getPropPosActions(Proposition p);
         
         int getFirstLayer();
         int getLastLayer();
@@ -94,6 +94,12 @@ class PlanningProblem : public IPlanningProblem {
         // Negative effect edges ("From actions to their negative effects")
         std::vector<int> actionNegEffIndices;
         std::vector<Proposition> actionNegEffEdges;
+
+        // And again as vectors of lists to avoid copying
+        std::vector<std::list<Proposition>> actionPrecs;
+        std::vector<std::list<Proposition>> actionPosEffs;
+        std::vector<std::list<Proposition>> actionNegEffs;
+
 
         // Positive effect edges from positive effects to actions
         // This is needed when determining proposition mutexes
