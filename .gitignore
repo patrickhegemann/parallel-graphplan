@@ -3,3 +3,5 @@ testing/output.sas
 **/__pycache__/
 **/.idea/
 testing/mystery_log.txt
+problems/ipc14
+**/.directory
