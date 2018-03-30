@@ -20,6 +20,9 @@ PlannerWithSATExtraction::PlannerWithSATExtraction(IPlanningProblem *problem) : 
     //solver = ipasir_init();
     solver = ipasir_init();
 
+    ipasir_set_terminate (solver, NULL, NULL);
+    ipasir_set_learn (solver, NULL, 0, NULL); 
+
     countActions = problem->getActionCount();
     countPropositions = problem->getPropositionCount();
 
