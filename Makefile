@@ -11,7 +11,7 @@ SRC = src/*.cpp src/Planners/*.cpp
 TESTSRC = src/Planners/Planner.cpp src/test/NogoodTester.cpp src/Logger.cpp src/Plan.cpp
 
 # IPASIR SAT solver if none is set yet
-IPASIRSOLVER ?= picosat961
+IPASIRSOLVER ?= glucose4
 
 DEPS	= ipasir/sat/$(IPASIRSOLVER)/libipasir$(IPASIRSOLVER).a
 LIBS	=  -Lipasir/sat/$(IPASIRSOLVER)/ -lipasir$(IPASIRSOLVER)
@@ -21,8 +21,10 @@ LIBS	+= $(shell cat ipasir/sat/$(IPASIRSOLVER)/LIBS 2>/dev/null)
 debug: CXXFLAGS += $(DEBUGFLAGS)
 debug: $(TARGET)
 
+release: CXXFLAGS += $(RELEASEFLAGS)
+release: $(TARGET)
+
 $(TARGET): $(SRC) include/*.h Makefile
-	echo libs = $(LIBS)
 	$(CC) $(CXXFLAGS) -t -I $(INCDIR) $(SRC) $(LIBS) -o $@
 
 clean:
