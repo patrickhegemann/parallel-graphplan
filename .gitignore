@@ -5,3 +5,5 @@ testing/output.sas
 testing/mystery_log.txt
 problems/ipc14
 **/.directory
+**/vgcore*
+**/*callgrind*
