@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Parse input file
-    log(1, "Parsing...\n");
+    log(0, "Parsing...\n");
     SASParser parser;
 
     // Switch between data structures here later
@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
     parser.setProblemBuilder(&builder);
 
     IPlanningProblem *problem = parser.parse(settings->getInputFile());
-    log(1, "Parsing done\n");
+    log(0, "Parsing done\n");
 
     // Find a plan, then verify and print it
     Plan plan;
@@ -57,17 +57,24 @@ int main(int argc, char *argv[]) {
 }
 
 int findPlan(IPlanningProblem *problem, Plan& plan) {
-    log(1, "Searching plan...\n");
+    log(0, "Searching plan...\n");
 
     // Call planner
-    Planner *planner;
+    Planner *planner = nullptr;
     std::string plannerName = settings->getPlannerName();
     if (plannerName == "standard") {
         planner = new Planner(problem);
     } else if (plannerName == "satex") {
         planner = new PlannerWithSATExtraction(problem);
     }
-    int success = planner->graphplan(plan);
+    
+    int success = 0;
+
+    if (planner) {
+        success = planner->graphplan(plan);
+    } else {
+        exitError("Invalid planner: %s\n", plannerName.c_str());
+    }
 
     delete planner;
 
@@ -78,18 +85,18 @@ int findPlan(IPlanningProblem *problem, Plan& plan) {
     }
 
     // Plan found
-    log(1, "Plan found!\n");
+    log(0, "Plan found!\n");
     return 1;
 }
 
 int verifyPlan(IPlanningProblem *problem, Plan plan) {
-    log(1, "Verifying plan...\n");
+    log(0, "Verifying plan...\n");
 
     PlanVerifier ver(problem, plan);
     int planValid = ver.verify();
 
     if (planValid) {
-        log(1, "Plan OK\n");
+        log(0, "Plan OK\n");
     } else {
         exitError("Plan INVALID\n");
     }
