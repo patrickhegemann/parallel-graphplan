@@ -24,7 +24,7 @@ class Settings {
             inputFile = pp.getFilename();
             verbosityLevel = pp.getIntParam("v", 0);
             dumpPlanningGraph = pp.isSet("dump");
-            plannerName = pp.getParam("p", "standard");
+            plannerName = pp.getParam("p", "satex");
 
             log(0, "Parameters: ");
             pp.printParams();

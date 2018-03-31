@@ -24,7 +24,7 @@ debug: $(TARGET)
 release: CXXFLAGS += $(RELEASEFLAGS)
 release: $(TARGET)
 
-$(TARGET): $(SRC) include/*.h Makefile
+$(TARGET): $(SRC) include/*.h include/Planners/*.h Makefile
 	$(CC) $(CXXFLAGS) -t -I $(INCDIR) $(SRC) $(LIBS) -o $@
 
 clean:
