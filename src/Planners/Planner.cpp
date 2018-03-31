@@ -3,10 +3,12 @@
 #include <climits>
 #include <algorithm>
 #include <set>
+#include <list>
 
 #include "Planners/Planner.h"
 #include "Logger.h"
 #include "Settings.h"
+#include "pgp_utility.h"
 
 
 Planner::Planner(IPlanningProblem *problem) {
@@ -388,37 +390,22 @@ int Planner::checkPropsMutex(Proposition p, Proposition q, int actionLayer) {
  * Has to be called twice: once with actions (a,b), then with (b,a).
  */
 int Planner::checkActionsMutex(Action a, Action b) {
-    // Iterate the action's negative effects
-    for (Proposition neg : problem->getActionNegEffects(a)) {
-        // Check if negative effects collide with preconditions
-        for (Proposition prec : problem->getActionPreconditions(b)) {
-            if (neg == prec) {
-                /*
-                log(5, "Neg \"%s\" and Prec \"%s\" colliding\n",
-                        problem->getPropositionName(neg).c_str(),
-                        problem->getPropositionName(prec).c_str());
-                        */
-                return true;
-            }   
-        }
+    auto& posA = problem->getActionPosEffects(a);
+    auto& negA = problem->getActionNegEffects(a);
+    auto& precB = problem->getActionPreconditions(b);
+    auto& posB = problem->getActionPosEffects(b);
 
-        // Check if negative effects collide with positive effects
-        for (Proposition pos : problem->getActionPosEffects(b)) {
-            if (neg == pos) {
-                /*
-                log(5, "Neg \"%s\" and Pos \"%s\" colliding\n",
-                        problem->getPropositionName(neg).c_str(),
-                        problem->getPropositionName(pos).c_str());
-                        */
-                return true;
-            }
-        }
+    //log(2, "check actions mutex part 1 begin\n");
+
+    if (!empty_intersection(negA, precB) || !empty_intersection(negA, posB)) {
+        //log(2, "check actions mutex part 1 end\n");
+        return true;
     }
 
     // Check if positive effects coĺlide
-    for (Proposition aPos : problem->getActionPosEffects(a)) {
-        for (Proposition bPos : problem->getActionPosEffects(b)) {
-            if (problem->isMutexProp(aPos, bPos, INT_MAX)) {
+    for (Proposition p : posA) {
+        for (Proposition q : posB) {
+            if (problem->isMutexProp(p, q, INT_MAX)) {
                 /*
                 log(5, "Pos \"%s\" and Pos \"%s\" colliding\n",
                         problem->getPropositionName(aPos).c_str(),
