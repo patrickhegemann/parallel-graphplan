@@ -328,6 +328,12 @@ PlanningProblem* PlanningProblem::Builder::build() {
     problem->actionNegEffIndices[problem->actionNegEffIndices.size()-1] = problem->actionNegEffEdges.size();
     problem->totalPropositionCount = this->totalPropositionCount;
 
+    // Sorting action precondition and effect lists
+    for (Action a = 0; a < problem->countActions; a++) {
+        problem->actionPrecs[a].sort();
+        problem->actionPosEffs[a].sort();
+        problem->actionNegEffs[a].sort();
+    }
 
     // Experimental output of structure so far
     log(4, "Dumping problem data\n");

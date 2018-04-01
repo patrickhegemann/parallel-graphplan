@@ -20,8 +20,8 @@ PlannerWithSATExtraction::PlannerWithSATExtraction(IPlanningProblem *problem) : 
     //solver = ipasir_init();
     solver = ipasir_init();
 
-    ipasir_set_terminate (solver, NULL, NULL);
-    ipasir_set_learn (solver, NULL, 0, NULL); 
+    ipasir_set_terminate(solver, NULL, NULL);
+    ipasir_set_learn(solver, NULL, 0, NULL); 
 
     countActions = problem->getActionCount();
     countPropositions = problem->getPropositionCount();
@@ -62,7 +62,6 @@ int PlannerWithSATExtraction::graphplan(Plan& plan) {
     // If fixed point is reached, we have theoretically expanded beyond it, just to find out.
     // So we subtract that additional layer again
     int lastLayer = problem->getLastLayer();
-    //if (fixedPoint) lastLayer--;
     int success = extract(goal, lastLayer, plan);
 
     // Keep track of how many nogoods exist, so we can determine if any are added during an iteration
@@ -78,12 +77,7 @@ int PlannerWithSATExtraction::graphplan(Plan& plan) {
 
         // Do backwards search with given goal propositions
         lastLayer = problem->getLastLayer();
-        //if (fixedPoint) lastLayer--;    // about the -1 see above
         success = extract(goal, lastLayer, plan);
-
-        // When extracting with SAT, the nogoods are implicitly handled by the SAT Solver,
-        // thus we cannot count them and have to go on until we find a plan
-        // So this solver can only be used for problems with a solution.
     }
 
     return success;

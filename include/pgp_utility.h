@@ -5,7 +5,8 @@
 
 #include "common.h"
 
-bool empty_intersection(const std::list<Proposition>& x, const std::list<Proposition>& y) {
+// Checks if the intersection of two sorted (!) lists is empty
+inline bool empty_intersection(const std::list<Proposition>& x, const std::list<Proposition>& y) {
     auto i = x.begin();
     auto j = y.begin();
     while (i != x.end() && j != y.end()) {

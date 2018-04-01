@@ -230,17 +230,14 @@ void Planner::expand() {
     int newActionLayer = problem->addActionLayer();
     log(4, "New action layer is %d\n", newActionLayer);
 
-    /* TODO: Possibly remove. Still useful if giving up optimality, i.e.
-     * expanding beyond the fixed point
-     * /
+    // TODO: Possibly remove. Still useful if giving up optimality
     // If we reached a fixed point we don't need to do anything else.
     // No adding of actions or propositions needed, since those will be carried
     // over implicitly.
-    if (fixedPoint && !fixedMutexes) {
-        updateNewLayerMutexes(currentPropLayer);
-        return;
-    }
-    */
+    //if (fixedPoint && !fixedMutexes) {
+    //    updateNewLayerMutexes(currentPropLayer);
+    //    return;
+    //}
 
     // No nogoods for this layer yet
     countNogoods.push_back(0);
@@ -280,7 +277,7 @@ void Planner::expand() {
         problem->activateAction(action, newActionLayer);
         // Check for general mutexes that are independent on the layer
         for (Action b : problem->getLayerActions(newActionLayer)) {
-            if (checkActionsMutex(action, b) || checkActionsMutex(b, action)) {
+            if (checkActionsMutex(action, b)) {
                 problem->setMutexAction(action, b, INT_MAX);
             }
         }
@@ -325,14 +322,6 @@ void Planner::updateActionLayerMutexes(int prevPropLayer, int actionLayer) {
     for (Action a : actions) {
         for (Action b : actions) {
             if (a == b || problem->isMutexAction(a, b, actionLayer)) break;
-            /*
-            if (checkActionsMutex(a, b)
-                    || checkActionsMutex(b, a)
-                    || checkActionPrecsMutex(a, b, prevPropLayer)) {
-                // Set a new mutex
-                problem->setMutexAction(a, b, actionLayer);
-            }
-            */
             if (checkActionPrecsMutex(a, b, prevPropLayer)) {
                 problem->setMutexAction(a, b, actionLayer);
             }
@@ -387,18 +376,17 @@ int Planner::checkPropsMutex(Proposition p, Proposition q, int actionLayer) {
 
 /**
  * Checks if two actions are mutex due to colliding effects
- * Has to be called twice: once with actions (a,b), then with (b,a).
  */
 int Planner::checkActionsMutex(Action a, Action b) {
+    auto& precA = problem->getActionPreconditions(a);
     auto& posA = problem->getActionPosEffects(a);
     auto& negA = problem->getActionNegEffects(a);
     auto& precB = problem->getActionPreconditions(b);
     auto& posB = problem->getActionPosEffects(b);
+    auto& negB = problem->getActionNegEffects(b);
 
-    //log(2, "check actions mutex part 1 begin\n");
-
-    if (!empty_intersection(negA, precB) || !empty_intersection(negA, posB)) {
-        //log(2, "check actions mutex part 1 end\n");
+    if (!empty_intersection(negA, precB) || !empty_intersection(negA, posB)
+            || !empty_intersection(negB, precA) || !empty_intersection(negB, posA)) {
         return true;
     }
 
@@ -406,11 +394,6 @@ int Planner::checkActionsMutex(Action a, Action b) {
     for (Proposition p : posA) {
         for (Proposition q : posB) {
             if (problem->isMutexProp(p, q, INT_MAX)) {
-                /*
-                log(5, "Pos \"%s\" and Pos \"%s\" colliding\n",
-                        problem->getPropositionName(aPos).c_str(),
-                        problem->getPropositionName(bPos).c_str());
-                        */
                 return true;
             }
         }
