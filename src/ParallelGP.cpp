@@ -14,7 +14,6 @@
 #include "Plan.h"
 #include "PlanningProblem.h"
 #include "Parser.h"
-#include "PlanVerifier.h"
 #include "Settings.h"
 #include "Logger.h"
 
@@ -50,7 +49,6 @@ int main(int argc, char *argv[]) {
     Plan plan;
     if (findPlan(problem, plan)) {
         printPlan(problem, plan);
-        verifyPlan(problem, plan);
     }
 
     return 0;
@@ -89,23 +87,9 @@ int findPlan(IPlanningProblem *problem, Plan& plan) {
     return 1;
 }
 
-int verifyPlan(IPlanningProblem *problem, Plan plan) {
-    log(0, "Verifying plan...\n");
-
-    PlanVerifier ver(problem, plan);
-    int planValid = ver.verify();
-
-    if (planValid) {
-        log(0, "Plan OK\n");
-    } else {
-        exitError("Plan INVALID\n");
-    }
-
-    return planValid;
-}
-
 void printPlan(IPlanningProblem *problem, Plan plan) {
     // Output plan (short version)
+    log(0, "BEGIN PLAN\n");
     int step = 0;
     log(0, "LAYER\tSTEP\tACTION\n");
     for (int layerNumber = 0; layerNumber < plan.getLayerCount(); layerNumber++) {
@@ -117,5 +101,6 @@ void printPlan(IPlanningProblem *problem, Plan plan) {
             }
         }
     }
+    log(0, "END PLAN\n");
 }
 
