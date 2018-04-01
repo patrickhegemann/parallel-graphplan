@@ -17,7 +17,6 @@ extern "C" {
 
 
 PlannerWithSATExtraction::PlannerWithSATExtraction(IPlanningProblem *problem) : Planner(problem) {
-    //solver = ipasir_init();
     solver = ipasir_init();
 
     ipasir_set_terminate(solver, NULL, NULL);
@@ -40,8 +39,6 @@ PlannerWithSATExtraction::~PlannerWithSATExtraction() {
 }
 
 int PlannerWithSATExtraction::graphplan(Plan& plan) {
-    log(4, "Entering graphplan algorithm with SAT Extraction\n");
-
     // Expand the graph until we hit a fixed-point level or we find out that
     // the problem is unsolvable.
     while (!fixedPoint && checkGoalUnreachable()) {
@@ -56,9 +53,7 @@ int PlannerWithSATExtraction::graphplan(Plan& plan) {
     }
 
     // Do backwards search with given goal propositions
-    log(4, "Preparing goal list\n");
     std::list<Proposition> goal = problem->getGoal();
-    log(4, "Calling first extract\n");
     // If fixed point is reached, we have theoretically expanded beyond it, just to find out.
     // So we subtract that additional layer again
     int lastLayer = problem->getLastLayer();
@@ -87,6 +82,8 @@ void PlannerWithSATExtraction::expand() {
     int previousPropLayer = problem->getLastLayer();
 
     Planner::expand();
+
+    log(0, "Adding clauses to SAT solver\n");
 
     int lastActionLayer = problem->getLastActionLayer();
     int nextPropLayer = problem->getLastLayer();
@@ -142,6 +139,8 @@ void PlannerWithSATExtraction::expand() {
         ipasir_add(solver, 0);
     }
 
+    log(0, "Done adding clauses\n");
+
     // These are implicit, but can be made explicit for experiments
     /*
     // Proposition mutexes
@@ -159,7 +158,7 @@ void PlannerWithSATExtraction::expand() {
 }
 
 int PlannerWithSATExtraction::extract(std::list<Proposition> goal, int layer, Plan& plan) {
-    log(2, "Extracting in layer %d with SAT Extraction\n", layer);
+    log(0, "Extracting in layer %d with SAT Extraction\n", layer);
 
     // Assume that the goal is true in this layer
     for (Proposition p : goal) {
@@ -177,8 +176,10 @@ int PlannerWithSATExtraction::extract(std::list<Proposition> goal, int layer, Pl
             }
             plan.addLayer(actions);
         }
+        log (0, "Done extracting: success\n");
         return 1;
     } else {
+        log (0, "Done extracting: failure\n");
         return 0;
     }
 }
@@ -188,7 +189,6 @@ int PlannerWithSATExtraction::extract(std::list<Proposition> goal, int layer, Pl
  */
 int PlannerWithSATExtraction::propositionAtLayer(Proposition p, int layer) {
     int r = (countPropositions + countActions) * (layer - 2) + countActions + 1 + problem->getPropositionNumber(p);
-    //log(4, "prop at layer %d, %s = %d\n", layer, problem->getPropositionName(p).c_str(), r);
     return r;
 }
 
@@ -197,7 +197,6 @@ int PlannerWithSATExtraction::propositionAtLayer(Proposition p, int layer) {
  */
 int PlannerWithSATExtraction::actionAtLayer(Action a, int layer) {
     int r = (countPropositions + countActions) * (layer - 1) + 1 + a;
-    //log(4, "action at layer %d, %s = %d\n", layer, problem->getActionName(a).c_str(), r);
     return r;
 }
 

@@ -221,7 +221,7 @@ int Planner::graphplan(Plan& plan) {
 }
 
 void Planner::expand() {
-    log(2, "Expanding graph\n");
+    log(0, "Expanding graph\n");
 
     int lastPropositionLayer = problem->getLastLayer();
 
@@ -285,6 +285,8 @@ void Planner::expand() {
 
     updateActionLayerMutexes(lastPropositionLayer, newActionLayer);
     updatePropLayerMutexes(newPropositionLayer, newActionLayer);
+
+    log(0, "Done expanding graph\n");
 
     if (settings->getDumpPlanningGraph()) {
         problem->dumpPlanningGraph();

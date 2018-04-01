@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
 int findPlan(IPlanningProblem *problem, Plan& plan) {
     log(0, "Searching plan...\n");
 
-    // Call planner
+    // Instantiate planner depending on parameters
     Planner *planner = nullptr;
     std::string plannerName = settings->getPlannerName();
     if (plannerName == "standard") {
@@ -66,8 +66,8 @@ int findPlan(IPlanningProblem *problem, Plan& plan) {
         planner = new PlannerWithSATExtraction(problem);
     }
     
+    // Call planner
     int success = 0;
-
     if (planner) {
         success = planner->graphplan(plan);
     } else {
