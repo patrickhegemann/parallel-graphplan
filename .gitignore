@@ -8,3 +8,6 @@ problems/ipc14
 **/vgcore*
 **/*callgrind*
 **/*.pyc
+testing/translate/*.pyc
+testing/translate/pddl/*.pyc
+testing/translate/pddl_parser/*.pyc
