@@ -7,3 +7,4 @@ problems/ipc14
 **/.directory
 **/vgcore*
 **/*callgrind*
+**/*.pyc
