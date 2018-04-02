@@ -440,22 +440,30 @@ void PlanningProblem::Builder::setActionCount(int count) {
     problem->actionPosEffIndices.resize(count+1);
     problem->actionNegEffIndices.resize(count+1);
 
+    log(4, "checkpoint 1\n");
+
     problem->actionPrecs.resize(count);
     problem->actionPosEffs.resize(count);
     problem->actionNegEffs.resize(count);
 
+    log(4, "checkpoint 2\n");
 
     problem->actionFirstLayer.resize(count);
     problem->layerActions.resize(count);
-    problem->actionNames.reserve(count);
+    problem->actionNames.resize(count);
     problem->actionMutexes = new int[count*count];
+    log(4, "checkpoint 3\n");
 
     // Create trivial actions
     for (int var = 0; var < problem->getVariableCount(); var++) {
         for (int val = 0; val < problem->variableDomainSize[var]; val++) {
+            log(4, "checkpoint 4\n");
             Action a = addAction();
+            log(4, "checkpoint 5\n");
             setActionName(a, "Keep " + problem->propNames[Proposition(var, val)]);
+            log(4, "checkpoint 6\n");
             addActionPrecondition(a, Proposition(var, val));
+            log(4, "checkpoint 7\n");
             addActionPosEffect(a, Proposition(var, val));
         }
     }
