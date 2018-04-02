@@ -30,7 +30,8 @@ class SASParser {
         std::ifstream file;
         std::string curLine;    // Current line
 
-        std::stringstream lineStream;
+        std::vector<std::string> lineVector;
+        unsigned int currentTokenIndex;
         std::string curToken;   // Current token (if a line contains multiple ints)
 
         // Basic Parser functions

@@ -146,7 +146,20 @@ std::string SASParser::acceptAnyLine() {
  * and nextLine().
  */
 void SASParser::acceptTokenLine() {
-    lineStream = std::stringstream(curLine);
+    lineVector.clear();
+    currentTokenIndex = 0;
+
+    auto start = 0U;
+    auto end = curLine.find(" ");
+    while (end != std::string::npos)
+    {
+        std::string token = curLine.substr(start, end - start);
+        lineVector.push_back(token);
+        start = end + 1;
+        end = curLine.find(" ", start);
+    }
+    lineVector.push_back(curLine.substr(start, end));
+
     nextToken();
     nextLine();
 }
@@ -157,7 +170,10 @@ void SASParser::acceptTokenLine() {
  * Reads next token
  */
 void SASParser::nextToken() {
-    lineStream >> curToken;
+    if (currentTokenIndex < lineVector.size()) {
+        curToken = lineVector[currentTokenIndex];
+        currentTokenIndex++;
+    }
 }
 
 /**
