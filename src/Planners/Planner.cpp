@@ -415,13 +415,7 @@ int Planner::checkActionPrecsMutex(int a, int b, int propLayer) {
         for (Proposition q : problem->getActionPreconditions(b)) {
             if (p == q) continue;
             if (problem->isMutexProp(p, q, propLayer)) {
-                /*
-                log(5, "Action preconditions \"%s\" and \"%s\" are mutex in layer %d\n",
-                        problem->getPropositionName(p).c_str(),
-                        problem->getPropositionName(q).c_str(),
-                        propLayer);
                 return true;
-                */
             }
         }
     }
