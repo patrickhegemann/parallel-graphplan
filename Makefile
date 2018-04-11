@@ -25,7 +25,7 @@ release: CXXFLAGS += $(RELEASEFLAGS)
 release: $(TARGET)
 
 $(TARGET): $(SRC) include/*.h include/Planners/*.h Makefile
-	$(CC) $(CXXFLAGS) -I $(INCDIR) $(SRC) $(LIBS) -o $@
+	$(CC) $(CXXFLAGS) -I $(INCDIR) $(SRC) $(LIBS) -lpthread -o $@
 
 clean:
 	rm -f $(TARGET) *.o

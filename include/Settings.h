@@ -14,6 +14,7 @@ class Settings {
         const char *inputFile;
         int dumpPlanningGraph = 0;
         std::string plannerName;
+        int threadCount;
 
     public:
         Settings();
@@ -25,6 +26,7 @@ class Settings {
             verbosityLevel = pp.getIntParam("v", 0);
             dumpPlanningGraph = pp.isSet("dump");
             plannerName = pp.getParam("p", "satex");
+            threadCount = pp.getIntParam("t", 1);
 
             log(0, "Parameters: ");
             pp.printParams();
@@ -44,6 +46,10 @@ class Settings {
 
         std::string getPlannerName() {
             return plannerName;
+        }
+
+        int getThreadCount() {
+            return threadCount;
         }
 };
 

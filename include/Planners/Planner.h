@@ -13,12 +13,13 @@
 
 
 /**
- * Main Planner class that implements the Graphplan algorithm in parallel.
+ * Main Planner class that implements the Graphplan algorithm.
  *
  * Author: Patrick Hegemann
  */
 class Planner {
     public:
+        Planner() {}
         Planner(IPlanningProblem *problem);
         virtual ~Planner() {}
         virtual int graphplan(Plan& plan);
@@ -43,6 +44,7 @@ class Planner {
         // Representation of nogoods is in this case a vector of vectors for
         // easier sharing between planner threads
         std::vector<std::vector<int>> nogoods;
+        //std::vector<std::list<std::list<Proposition>>> nogoods;
 
         // Check if the fixed point in the planning graph is reached
         int checkFixedPoint();

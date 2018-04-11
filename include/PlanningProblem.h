@@ -64,6 +64,7 @@ class PlanningProblem : public IPlanningProblem {
     
         int getPropLayerAfterActionLayer(int actionLayer);
         int getActionLayerBeforePropLayer(int propLayer);
+        int getPropLayerBeforeActionLayer(int actionLayer);
 
         void dumpPlanningGraph();
 

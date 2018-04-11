@@ -9,7 +9,7 @@
 #include "PlanningProblem.h"
 
 /**
- * Recursive descent parser for SAS as output by FastDownward
+ * Recursive descent parser for SAS as output by FastDownward translator
  *
  * Author: Patrick Hegemann
  */

@@ -225,6 +225,11 @@ int PlanningProblem::getActionLayerBeforePropLayer(int propLayer) {
     return propLayer - 1;
 }
 
+int PlanningProblem::getPropLayerBeforeActionLayer(int actionLayer) {
+    return actionLayer;
+}
+
+
 void PlanningProblem::dumpPlanningGraph() {
     // Output format:
     // 1. Node labels (proposition names, action names) & edges:

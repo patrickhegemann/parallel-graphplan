@@ -17,6 +17,7 @@
 #include "Settings.h"
 #include "Logger.h"
 
+#include "Planners/SimpleParallelPlannerWithSAT.h"
 #include "Planners/PlannerWithSATExtraction.h"
 #include "Planners/Planner.h"
 
@@ -60,10 +61,12 @@ int findPlan(IPlanningProblem *problem, Plan& plan) {
     // Instantiate planner depending on parameters
     Planner *planner = nullptr;
     std::string plannerName = settings->getPlannerName();
-    if (plannerName == "standard") {
+    if (plannerName == "standard") {        // Standard Graphplan
         planner = new Planner(problem);
-    } else if (plannerName == "satex") {
+    } else if (plannerName == "satex") {    // Planner with SAT Extraction
         planner = new PlannerWithSATExtraction(problem);
+    } else if (plannerName == "sppsat") {   // Simple Parallel Planner with SAT
+        planner = new SimpleParallelPlannerWithSAT(problem);
     }
     
     // Call planner
@@ -75,6 +78,8 @@ int findPlan(IPlanningProblem *problem, Plan& plan) {
     }
 
     delete planner;
+
+    log(1, "checkpoint 1\n");
 
     // No plan
     if (!success) {

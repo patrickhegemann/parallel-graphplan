@@ -11,31 +11,24 @@ extern "C" {
 }
 
 
-#define IPASIR_INTERRUPT 0
-#define IPASIR_IS_SAT 10
-#define IPASIR_IS_UNSAT 20
+
 
 
 PlannerWithSATExtraction::PlannerWithSATExtraction(IPlanningProblem *problem) : Planner(problem) {
     solver = ipasir_init();
+    solverInitialized = true;
 
     ipasir_set_terminate(solver, NULL, NULL);
     ipasir_set_learn(solver, NULL, 0, NULL); 
 
     countActions = problem->getActionCount();
     countPropositions = problem->getPropositionCount();
-
-    /*
-    int firstLayer = problem->getFirstLayer();
-    for (Proposition p : problem->getLayerPropositions(firstLayer)) {
-        ipasir_add(solver, propositionAtLayer(p, firstLayer));
-        ipasir_add(0);
-    }
-    */
 }
 
 PlannerWithSATExtraction::~PlannerWithSATExtraction() {
-    ipasir_release(solver);
+    if (solverInitialized) {
+        ipasir_release(solver);
+    }
 }
 
 int PlannerWithSATExtraction::graphplan(Plan& plan) {
@@ -57,7 +50,7 @@ int PlannerWithSATExtraction::graphplan(Plan& plan) {
     // If fixed point is reached, we have theoretically expanded beyond it, just to find out.
     // So we subtract that additional layer again
     int lastLayer = problem->getLastLayer();
-    int success = extract(goal, lastLayer, plan);
+    int success = extract(solver, goal, lastLayer, plan);
 
     // Keep track of how many nogoods exist, so we can determine if any are added during an iteration
     //int lastNogoodCount = 0;
@@ -72,29 +65,28 @@ int PlannerWithSATExtraction::graphplan(Plan& plan) {
 
         // Do backwards search with given goal propositions
         lastLayer = problem->getLastLayer();
-        success = extract(goal, lastLayer, plan);
+        success = extract(solver, goal, lastLayer, plan);
     }
 
     return success;
 }
 
-void PlannerWithSATExtraction::expand() {
-    int previousPropLayer = problem->getLastLayer();
-
-    Planner::expand();
-
+/**
+ * Adds necessary clauses for one action layer to the given SAT solver.
+ */
+void PlannerWithSATExtraction::addClausesToSolver(void *solver, int actionLayer) {
     log(0, "Adding clauses to SAT solver\n");
 
-    int lastActionLayer = problem->getLastActionLayer();
-    int nextPropLayer = problem->getLastLayer();
+    int prevPropLayer = problem->getPropLayerBeforeActionLayer(actionLayer);
+    int nextPropLayer = problem->getPropLayerAfterActionLayer(actionLayer);
 
-    for (Action a : problem->getLayerActions(lastActionLayer)) {
+    for (Action a : problem->getLayerActions(actionLayer)) {
         // Add precondition clauses to the SAT solver
         // If an action is done in layer i, the precondition has to be true in layer i-1
-        if(lastActionLayer != problem->getFirstActionLayer()) {
+        if (actionLayer != problem->getFirstActionLayer()) {
             for (Proposition prec : problem->getActionPreconditions(a)) {
-                ipasir_add(solver, -actionAtLayer(a, lastActionLayer));
-                ipasir_add(solver, propositionAtLayer(prec, previousPropLayer));
+                ipasir_add(solver, -actionAtLayer(a, actionLayer));
+                ipasir_add(solver, propositionAtLayer(prec, prevPropLayer));
                 ipasir_add(solver, 0);
             }
         }
@@ -102,7 +94,7 @@ void PlannerWithSATExtraction::expand() {
         // Add positive effect clauses to the SAT solver
         // If an action is done in layer i, the positive effect has to be true in layer i+1
         for (Proposition pos : problem->getActionPosEffects(a)) {
-            ipasir_add(solver, -actionAtLayer(a, lastActionLayer));
+            ipasir_add(solver, -actionAtLayer(a, actionLayer));
             ipasir_add(solver, propositionAtLayer(pos, nextPropLayer));
             ipasir_add(solver, 0);
         }
@@ -110,7 +102,7 @@ void PlannerWithSATExtraction::expand() {
         // Add negative effect clauses to the SAT solver
         // If an action is done in layer i, the negative effect has to be false in layer i+1
         for (Proposition neg : problem->getActionNegEffects(a)) {
-            ipasir_add(solver, -actionAtLayer(a, lastActionLayer));
+            ipasir_add(solver, -actionAtLayer(a, actionLayer));
             ipasir_add(solver, -propositionAtLayer(neg, nextPropLayer));
             ipasir_add(solver, 0);
         }
@@ -118,9 +110,9 @@ void PlannerWithSATExtraction::expand() {
         // Action mutexes
         for (Action b : problem->getLayerActions(problem->getLastActionLayer())) {
             if (a == b) break;
-            if (problem->isMutexAction(a, b, lastActionLayer)) {
-                ipasir_add(solver, -actionAtLayer(a, lastActionLayer));
-                ipasir_add(solver, -actionAtLayer(b, lastActionLayer));
+            if (problem->isMutexAction(a, b, actionLayer)) {
+                ipasir_add(solver, -actionAtLayer(a, actionLayer));
+                ipasir_add(solver, -actionAtLayer(b, actionLayer));
                 ipasir_add(solver, 0);
             }
         }
@@ -132,32 +124,22 @@ void PlannerWithSATExtraction::expand() {
     for (Proposition p: problem->getLayerPropositions(nextPropLayer)) {
         ipasir_add(solver, -propositionAtLayer(p, nextPropLayer));
         for (Action a: problem->getPropPosActions(p)) {
-            if (problem->isActionEnabled(a, lastActionLayer)) {
-                ipasir_add(solver, actionAtLayer(a, lastActionLayer));
+            if (problem->isActionEnabled(a, actionLayer)) {
+                ipasir_add(solver, actionAtLayer(a, actionLayer));
             }   
         }
         ipasir_add(solver, 0);
     }
 
     log(0, "Done adding clauses\n");
-
-    // These are implicit, but can be made explicit for experiments
-    /*
-    // Proposition mutexes
-    for (Proposition p : problem->getLayerPropositions(nextPropLayer)) {
-        for (Proposition q : problem->getLayerPropositions(nextPropLayer)) {
-            if (p == q) break;
-            if (problem->isMutexProp(p, q, nextPropLayer)) {
-                ipasir_add(solver, -propositionAtLayer(p, nextPropLayer));
-                ipasir_add(solver, -propositionAtLayer(q, nextPropLayer));
-                ipasir_add(solver, 0);
-            }
-        }
-    }
-    */
 }
 
-int PlannerWithSATExtraction::extract(std::list<Proposition> goal, int layer, Plan& plan) {
+void PlannerWithSATExtraction::expand() {
+    Planner::expand();
+    addClausesToSolver(solver, problem->getLastActionLayer());
+}
+
+int PlannerWithSATExtraction::extract(void *solver, std::list<Proposition> goal, int layer, Plan& plan) {
     log(0, "Extracting in layer %d with SAT Extraction\n", layer);
 
     // Assume that the goal is true in this layer
@@ -166,7 +148,7 @@ int PlannerWithSATExtraction::extract(std::list<Proposition> goal, int layer, Pl
     }
 
     if (ipasir_solve(solver) == IPASIR_IS_SAT) {
-        for (int i = problem->getFirstActionLayer(); i <= problem->getLastActionLayer(); i++) {
+        for (int i = problem->getFirstActionLayer(); i <= problem->getActionLayerBeforePropLayer(layer); i++) {
             std::list<Action> actions;
             for (Action a : problem->getLayerActions(i)) {
                 int lit = actionAtLayer(a, i);
@@ -179,7 +161,7 @@ int PlannerWithSATExtraction::extract(std::list<Proposition> goal, int layer, Pl
         log (0, "Done extracting: success\n");
         return 1;
     } else {
-        log (0, "Done extracting: failure\n");
+        log (0, "Done extracting: failure/terminated\n");
         return 0;
     }
 }

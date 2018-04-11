@@ -135,6 +135,8 @@ class IPlanningProblem {
         virtual int getPropLayerAfterActionLayer(int actionLayer) =0;
         // Returns number of the action layer before given proposition layer
         virtual int getActionLayerBeforePropLayer(int propLayer) =0;
+        // Returns number of the proposition layer before given action layer
+        virtual int getPropLayerBeforeActionLayer(int actionLayer) =0;
 
         // Outputs the whole current planning graph
         virtual void dumpPlanningGraph() =0;

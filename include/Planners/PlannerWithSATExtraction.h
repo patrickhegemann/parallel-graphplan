@@ -9,29 +9,38 @@
 #include "Planners/Planner.h"
 
 
+#define IPASIR_INTERRUPT 0
+#define IPASIR_IS_SAT 10
+#define IPASIR_IS_UNSAT 20
+
 
 /**
- * Main Planner class that implements the Graphplan algorithm in parallel.
+ * Planner class that implements the Graphplan algorithm using SAT Solving for
+ * the extraction step.
  *
  * Author: Patrick Hegemann
  */
 class PlannerWithSATExtraction : public Planner {
     public:
+        PlannerWithSATExtraction() {}
         PlannerWithSATExtraction(IPlanningProblem *problem);
         ~PlannerWithSATExtraction();
         int graphplan(Plan& plan);
 
     protected:
-        void *solver;
-
         int countPropositions;
         int countActions;
 
         void expand();
-        int extract(std::list<Proposition> goal, int layer, Plan& plan);
+        void addClausesToSolver(void *solver, int actionLayer);
+        int extract(void *solver, std::list<Proposition> goal, int layer, Plan& plan);
         
         int propositionAtLayer(Proposition p, int layer);
         int actionAtLayer(Action a, int layer);
+
+    private:
+        bool solverInitialized = false;
+        void *solver;
 };
 
 #endif
