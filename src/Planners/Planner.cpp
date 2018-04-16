@@ -15,6 +15,9 @@ Planner::Planner(IPlanningProblem *problem) {
     this->problem = problem;
 }
 
+
+
+
 int Planner::isNogood(int layer, std::list<Proposition> props) {
     log(2, "Checking for nogood in layer %d\n", layer);
     for (Proposition prop : props) {
@@ -63,6 +66,71 @@ int Planner::isNogood(int layer, std::list<Proposition> props) {
     return false;
 }
 
+/*
+int Planner::isNogood(int layer, std::list<Proposition> props) {
+    if (nogoods.size() <= (unsigned int) layer) return false;
+
+    Proposition p(-1,-1), q(-1,-1);
+    Proposition *lastActualProp = &p;
+    Proposition *lastSearchedProp = &q;
+
+    for (std::list<Proposition>& nogood : nogoods[layer]) {
+        auto i = nogood.begin();
+        auto j = props.begin();
+
+        while (i != nogood.end() || j != props.end()) {
+            
+            if ((i == nogood.end() && *j != *lastSearchedProp) || (j == props.end() && *i != *lastActualProp)) {
+                break;
+            }
+            
+            if (*i == *lastActualProp) {
+                *lastActualProp = *i;
+                ++i;
+            } else if (*j == *lastSearchedProp) {
+                *lastSearchedProp = *j;
+                ++j;
+            } else if (*i == *j) {
+                *lastActualProp = *i;
+                *lastSearchedProp = *j;
+                ++i;
+                ++j;
+            } else {
+                // *i != *j and no duplicates
+                // -> check next nogood
+                break;
+            }
+
+        }
+
+        if (i == nogood.end() && j == props.end()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+*/
+
+/*
+
+void Planner::addNogood(int layer, std::list<Proposition> props) {
+    log(2, "Adding a nogood in layer %d\n", layer);
+
+    props.sort();
+
+    // Add vectors to the nogood table until we have sufficiently many layers
+    while (nogoods.size() <= (unsigned int) layer) {
+        nogoods.push_back(std::list<std::list<Proposition>>());
+    }
+
+    nogoods[layer].push_back(props);
+
+    countNogoods[layer]++;    
+}
+*/
+
+
 void Planner::addNogood(int layer, std::list<Proposition> props) {
     log(2, "Adding a nogood in layer %d\n", layer);
 
@@ -84,6 +152,8 @@ void Planner::addNogood(int layer, std::list<Proposition> props) {
     countNogoods[layer]++;
 }
 
+
+
 void Planner::dumpNogoods() {
     int layer = 0;
     for (auto n : nogoods) {
@@ -95,6 +165,7 @@ void Planner::dumpNogoods() {
         layer++;
     }
 }
+
 
 /**
  * Check if a fixed point in the planning graph is reached
@@ -461,16 +532,16 @@ int Planner::extract(std::list<Proposition> goal, int layer, Plan& plan) {
 }
 
 int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, int layer, Plan& plan) {
-    log(2, "Performing gpSearch\n");
+    log(2, "Performing gpSearch %d\n", goal.size());
 
     int actionLayer = problem->getActionLayerBeforePropLayer(layer);
-    /*
-    for (int g : goal) {
+
+    for (auto g : goal) {
         //std::cout << problem->propNames[g] << ", ";
-        std::cout << g << ", ";
+        std::cout << "(" << g.first << "," << g.second << ") " << problem->getPropositionName(g) << ", ";
     }
     std::cout << std::endl;
-    */
+    
     
     // All actions already chosen
     if (goal.empty()) {
@@ -479,7 +550,7 @@ int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, in
         std::list<Proposition> preconds;
         for (Action a : actions) {
             // TODO: Duplicate detection ?
-            std::list<Proposition> ap = problem->getActionPreconditions(a);
+            std::list<Proposition>& ap = problem->getActionPreconditions(a);
             preconds.insert(preconds.end(), ap.begin(), ap.end());
         }
 
@@ -498,9 +569,8 @@ int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, in
 
     // Get providers (actions) of p
     std::list<Action> providers;
-    log(5, "nextProp: %s\n", problem->getPropositionName(nextProp).c_str());
     for (Action provider : problem->getPropPosActions(nextProp)) {
-        log(5, "\t%s\n", problem->getActionName(provider).c_str());
+        log(2, "ppa %s\n", problem->getActionName(provider).c_str());
         // Check if provider is enabled and if not, skip provider
         if (!(problem->isActionEnabled(provider, actionLayer))
                 || problem->getActionFirstLayer(provider) > actionLayer) {
@@ -519,6 +589,7 @@ int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, in
         // Add provider to the list
         if (!mut) {
             // Small hack: Add trivial actions to the back and others to the front, so they'd get chosen first
+            log(2, "doot\n");
             if (problem->isTrivialAction(provider)) {
                 providers.push_back(provider);
             } else {
@@ -527,9 +598,13 @@ int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, in
         }
     }
 
+    log(2, "size %d\n", providers.size());
+
 
     // No providers for goal => no plan
-    if (providers.empty()) return 0;
+    if (providers.size() == 0) {
+        return 0;
+    }
     
     // Add a providing action
     // TODO: Add some different variants (possibly with heuristics) to choose one provider
@@ -546,7 +621,9 @@ int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, in
         newActions.push_back(provider);
 
         // Remove action effects from goal list
+        log(2, "action: %s\n", problem->getActionName(provider).c_str());
         for (Proposition posEff : problem->getActionPosEffects(provider)) {
+            log(2, "NOOT %d,%d %s\n", posEff.first, posEff.second, problem->getPropositionName(posEff).c_str());
             newGoal.remove(posEff);
         }
 

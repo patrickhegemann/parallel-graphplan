@@ -38,6 +38,7 @@ class SimpleParallelPlannerWithSAT : public PlannerWithSATExtraction {
         std::map<void*, int> solversLastLayer;
 
         void expand();
+        void addClausesToSolver(void *solver, int actionLayer);
         //int extract(void* solver, std::list<Proposition> goal, int layer, Plan& plan);
 
     private:
@@ -58,6 +59,9 @@ class SimpleParallelPlannerWithSAT : public PlannerWithSATExtraction {
 
         // The last layer where extraction has failed
         int lastFailedLayer = 0;
+
+        // Mutex for the problem/planning graph
+        std::mutex graphMutex;
 };
 
 

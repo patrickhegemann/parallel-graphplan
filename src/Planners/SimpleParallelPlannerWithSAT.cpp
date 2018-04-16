@@ -152,6 +152,13 @@ int SimpleParallelPlannerWithSAT::solverTerminator(void* state) {
 }
 
 void SimpleParallelPlannerWithSAT::expand() {
+    // Get lock and then expand graph
+    std::unique_lock<std::mutex> lck(graphMutex);
     Planner::expand();
 }
 
+void SimpleParallelPlannerWithSAT::addClausesToSolver(void *solver, int actionLayer) {
+    // Get lock and then add clauses
+    std::unique_lock<std::mutex> lck(graphMutex);
+    PlannerWithSATExtraction::addClausesToSolver(solver, actionLayer);
+}

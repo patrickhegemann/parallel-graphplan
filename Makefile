@@ -11,10 +11,10 @@ SRC = src/*.cpp src/Planners/*.cpp
 TESTSRC = src/Planners/Planner.cpp src/test/NogoodTester.cpp src/Logger.cpp src/Plan.cpp
 
 # IPASIR SAT solver if none is set yet
-IPASIRSOLVER ?= glucose4
+IPASIRSOLVER ?= lingeling
 
 DEPS	= ipasir/sat/$(IPASIRSOLVER)/libipasir$(IPASIRSOLVER).a
-LIBS	=  -Lipasir/sat/$(IPASIRSOLVER)/ -lipasir$(IPASIRSOLVER)
+LIBS	=  -Lipasir/sat/$(IPASIRSOLVER)/ -llgl#-lipasir$(IPASIRSOLVER)
 LIBS	+= $(shell cat ipasir/sat/$(IPASIRSOLVER)/LIBS 2>/dev/null)
 
 
