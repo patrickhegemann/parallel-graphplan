@@ -6,9 +6,14 @@
 #include "Planners/PlannerWithSATExtraction.h"
 #include "Logger.h"
 #include "Settings.h"
+
+#ifndef IPASIRCPP
 extern "C" {
     #include "ipasir.h"
 }
+#else
+#include "ipasir.h"
+#endif
 
 
 
@@ -32,6 +37,8 @@ PlannerWithSATExtraction::~PlannerWithSATExtraction() {
 }
 
 int PlannerWithSATExtraction::graphplan(Plan& plan) {
+    log(0, "SATEx algorithm using SAT Solver %s\n", ipasir_signature());
+
     // Expand the graph until we hit a fixed-point level or we find out that
     // the problem is unsolvable.
     while (!fixedPoint && checkGoalUnreachable()) {
@@ -75,7 +82,7 @@ int PlannerWithSATExtraction::graphplan(Plan& plan) {
  * Adds necessary clauses for one action layer to the given SAT solver.
  */
 void PlannerWithSATExtraction::addClausesToSolver(void *solver, int actionLayer) {
-    log(0, "Adding clauses to SAT solver\n");
+    log(0, "Adding clauses to SAT solver %p\n", solver);
 
     int prevPropLayer = problem->getPropLayerBeforeActionLayer(actionLayer);
     int nextPropLayer = problem->getPropLayerAfterActionLayer(actionLayer);

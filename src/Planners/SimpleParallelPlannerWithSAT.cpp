@@ -11,9 +11,13 @@
 #include "Logger.h"
 #include "Settings.h"
 
+#ifndef IPASIRCPP
 extern "C" {
     #include "ipasir.h"
 }
+#else
+#include "ipasir.h"
+#endif
 
 
 
@@ -35,6 +39,8 @@ SimpleParallelPlannerWithSAT::~SimpleParallelPlannerWithSAT() {
 }
 
 int SimpleParallelPlannerWithSAT::graphplan(Plan& plan) {
+    log(0, "SPPSAT algorithm using SAT Solver %s\n", ipasir_signature());
+
     // Expand the graph until we hit a fixed-point level or we find out that
     // the problem is unsolvable.
     while (!fixedPoint && checkGoalUnreachable()) {
