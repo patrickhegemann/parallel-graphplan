@@ -7,12 +7,12 @@
 #include "Logger.h"
 #include "Settings.h"
 
-#ifndef IPASIRCPP
+#ifdef IPASIRCPP
+#include "ipasir.h"
+#else
 extern "C" {
     #include "ipasir.h"
 }
-#else
-#include "ipasir.h"
 #endif
 
 
@@ -24,7 +24,9 @@ PlannerWithSATExtraction::PlannerWithSATExtraction(IPlanningProblem *problem) : 
     solverInitialized = true;
 
     ipasir_set_terminate(solver, NULL, NULL);
+    #ifndef PGP_NOSETLEARN
     ipasir_set_learn(solver, NULL, 0, NULL); 
+    #endif
 
     countActions = problem->getActionCount();
     countPropositions = problem->getPropositionCount();

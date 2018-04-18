@@ -1,12 +1,12 @@
 #include "SATSolverThreadPool.h"
 #include "Logger.h"
 
-#ifndef IPASIRCPP
+#ifdef IPASIRCPP
+#include "ipasir.h"
+#else
 extern "C" {
     #include "ipasir.h"
 }
-#else
-#include "ipasir.h"
 #endif
 
 

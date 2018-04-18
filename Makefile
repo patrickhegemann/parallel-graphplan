@@ -11,11 +11,12 @@ SRC = src/*.cpp src/Planners/*.cpp
 TESTSRC = src/Planners/Planner.cpp src/test/NogoodTester.cpp src/Logger.cpp src/Plan.cpp
 
 # IPASIR SAT solver if none is set yet
-IPASIRSOLVER ?= glucose4#lingeling
+IPASIRSOLVER ?= glucose4#abcdsat_i17#cryptominisat5#picosat961#minisat220
 #CXXFLAGS += -D'IPASIRCPP'
+#CXXFLAGS += -D'PGP_NOSETLEARN'
 
 DEPS	= ipasir/sat/$(IPASIRSOLVER)/libipasir$(IPASIRSOLVER).a
-LIBS	=  -Lipasir/sat/$(IPASIRSOLVER)/ -lipasir$(IPASIRSOLVER) #-llgl
+LIBS	= -Lipasir/sat/$(IPASIRSOLVER)/ -lipasir$(IPASIRSOLVER)#-L/usr/local/lib/ -lipasircryptominisat5# #-llgl
 LIBS	+= $(shell cat ipasir/sat/$(IPASIRSOLVER)/LIBS 2>/dev/null)
 
 

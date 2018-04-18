@@ -55,13 +55,25 @@ class SimpleParallelPlannerWithSAT : public PlannerWithSATExtraction {
         // Plan for the solved problem
         Plan solution;
         // Indicates whether the problem has been solved
-        bool problemSolved = false;
+        bool problemSolved;
 
         // The last layer where extraction has failed
-        int lastFailedLayer = 0;
+        int lastFailedLayer;
+        // Mutex for lastFailedLayer
+        std::mutex lastFailedLayerMutex;
 
         // Mutex for the problem/planning graph
         std::mutex graphMutex;
+
+        // Number of iterations of the main loop that happened
+        int mainIterations;
+        // Offset of the horizon (i.e. the layer that is reached before the
+        // main loop is started)
+        int horizonOffset;
+        // Calculates the 'horizon' for a given iteration number.
+        // E.g. for a linear horizon this is a linear function.
+        int horizon(int n);
+
 };
 
 

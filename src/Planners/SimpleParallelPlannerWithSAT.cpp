@@ -1,8 +1,9 @@
 #include <iostream>
 #include <iterator>
-#include <climits>
 #include <algorithm>
 #include <assert.h>
+#include <cmath>
+#include <map>
 
 #include <unistd.h>
 #include <thread>
@@ -11,18 +12,21 @@
 #include "Logger.h"
 #include "Settings.h"
 
-#ifndef IPASIRCPP
+#ifdef IPASIRCPP
+#include "ipasir.h"
+#else
 extern "C" {
     #include "ipasir.h"
 }
-#else
-#include "ipasir.h"
 #endif
 
 
 
 SimpleParallelPlannerWithSAT::SimpleParallelPlannerWithSAT(IPlanningProblem *problem) {
     this->problem = problem;
+    problemSolved = false;
+    lastFailedLayer = 0;
+    horizonOffset = 0;
 
     // Create thread pool with 1 tag (0)
     int threadCount = settings->getThreadCount();
@@ -35,7 +39,7 @@ SimpleParallelPlannerWithSAT::SimpleParallelPlannerWithSAT(IPlanningProblem *pro
 }
 
 SimpleParallelPlannerWithSAT::~SimpleParallelPlannerWithSAT() {
-    //delete threadPool;
+    delete threadPool;
 }
 
 int SimpleParallelPlannerWithSAT::graphplan(Plan& plan) {
@@ -46,6 +50,7 @@ int SimpleParallelPlannerWithSAT::graphplan(Plan& plan) {
     while (!fixedPoint && checkGoalUnreachable()) {
         expand();
         fixedPoint = fixedPoint || checkFixedPoint();
+        horizonOffset++;
     }
 
     // If goal is impossible to reach, this problem has no solution
@@ -54,28 +59,50 @@ int SimpleParallelPlannerWithSAT::graphplan(Plan& plan) {
         return false;
     }
 
-    int nextExtractionLayer = problem->getLastActionLayer();
+    // Inverted horizon, used to determine how far to expand before "going idle"
+    std::map<int, int> horizonInv;
+    int iteration = 0;
 
     while (!problemSolved) {
-        // 50 is just a random number
-        if (nextExtractionLayer < 50) {
+        // Determine if graph shall be expanded
+        bool doExpand = false;
+        {
+            // Calculation depends on the layer of the last failed extraction
+            std::unique_lock<std::mutex> lck(lastFailedLayerMutex);
+            // Expand far enough (so that each thread has something to work with)
+            if (iteration <= horizonInv[lastFailedLayer]+settings->getThreadCount()) {
+                doExpand = true;
+            }
+
+        }
+
+        if (doExpand) {
+            // Extract at horizon level
+            log(1, "horizon: %d, action layers: %d\n", horizon(iteration), problem->getLastActionLayer());
+            int extractionLayer = horizon(iteration);
+            horizonInv[extractionLayer] = iteration;
+
             // Queue an extraction job to the pool
             ThreadParameters *tp = new ThreadParameters();
             tp->planner = this;
-            tp->layer = nextExtractionLayer;
+            tp->layer = extractionLayer;
             SATSolverThreadPool::Job j;
             j.func = extractionThread;
             j.arguments = (void*)tp;
             threadPool->enqueueJob(0, j);
 
-            // Expand the graph for one more layer
-            // TODO: mutex for the graph (-> segfault)
-            expand();
-            fixedPoint = fixedPoint || checkFixedPoint();
-            nextExtractionLayer++;
+            // Expand the graph to the horizon
+            while (problem->getLastActionLayer() < horizon(iteration+1)) {
+                expand();
+                fixedPoint = fixedPoint || checkFixedPoint();
+            }
+
+            iteration++;
+        } else {
+            sleep(1);
         }
 
-        sleep(1);
+        //sleep(1);
     }
 
     plan = solution;
@@ -87,14 +114,17 @@ int SimpleParallelPlannerWithSAT::graphplan(Plan& plan) {
 void* SimpleParallelPlannerWithSAT::createSATSolver(void *args) {
 	void *solver = ipasir_init();
 
-	// Set termination and clause learning callbacks
-	ipasir_set_terminate(solver, args, solverTerminator);
+    #ifndef PGP_NOSETLEARN
+	// Set clause learning callback
     ipasir_set_learn(solver, NULL, 0, NULL);
+    #endif
 
     return solver;
 }
 
-// Each extraction thread is running this function which 
+// Each extraction thread is running this function which extracts a plan
+// starting from a given layer.
+// args has to be of type SimpleParallelPlannerWithSAT::ThreadParameters
 void* SimpleParallelPlannerWithSAT::extractionThread(void* solver, void* args) {
     // Get parameters for this thread
     ThreadParameters *param = (ThreadParameters*) args;
@@ -109,6 +139,10 @@ void* SimpleParallelPlannerWithSAT::extractionThread(void* solver, void* args) {
     } else {
         lastLayer = planner->solversLastLayer[solver];
     }
+
+    // Set termination callback for SAT solver, including information of the
+    // current extraction run, e.g. which layer.
+	ipasir_set_terminate(solver, args, solverTerminator);
 
     // Add necessary clauses to this thread's SAT solver
     for (int i = lastLayer; i <= layer; i++) {
@@ -125,8 +159,15 @@ void* SimpleParallelPlannerWithSAT::extractionThread(void* solver, void* args) {
             plan);
 
     if (success) {
-        log(1, "success\n");
+        // Mark the problem as solved so planner can terminate
         planner->markProblemSolved(plan);
+    } else {
+        // Update last failed layer so other threads can terminate that work
+        // on extraction from a lower layer
+        std::unique_lock<std::mutex> lck(planner->lastFailedLayerMutex);
+        if (planner->lastFailedLayer < layer) {
+            planner->lastFailedLayer = layer;
+        }
     }
 
     delete param;
@@ -136,14 +177,11 @@ void* SimpleParallelPlannerWithSAT::extractionThread(void* solver, void* args) {
 
 // Can be called by a thread to provide a solution to the planning problem.
 void SimpleParallelPlannerWithSAT::markProblemSolved(Plan plan) {
-    log(1, "waiting for mutex\n");
-    solvedMutex.lock();
+    std::unique_lock<std::mutex> lck(solvedMutex);
     if (!problemSolved) {
         problemSolved = true;
         solution = plan;
     }
-    solvedMutex.unlock();
-    log(1, "unlocked mutex\n");
 }
 
 // This function is called by the SAT solvers from different threads
@@ -151,9 +189,12 @@ void SimpleParallelPlannerWithSAT::markProblemSolved(Plan plan) {
 // A non-zero value indicates that the solver should abort (in accordance with
 // the ipasir definition).
 int SimpleParallelPlannerWithSAT::solverTerminator(void* state) {
-    // TODO: Implement
-    int t = ((SimpleParallelPlannerWithSAT*) state)->problemSolved;
-    log(1, "solverTerminator called, result: %d\n", t);
+    // Get arguments (used planner and layer)
+    auto *p = (SimpleParallelPlannerWithSAT::ThreadParameters*) state;
+    int layer = p->layer;
+    auto *planner = p->planner;
+    // If problem was solved, or extraction failed at a higher layer, terminate
+    int t = planner->problemSolved || planner->lastFailedLayer >= layer;
 	return t;
 }
 
@@ -168,3 +209,27 @@ void SimpleParallelPlannerWithSAT::addClausesToSolver(void *solver, int actionLa
     std::unique_lock<std::mutex> lck(graphMutex);
     PlannerWithSATExtraction::addClausesToSolver(solver, actionLayer);
 }
+
+int SimpleParallelPlannerWithSAT::horizon(int n) {
+    // Get parameters
+    int horizonType = settings->getHorizonType();
+    double factor = settings->getHorizonFactor();
+
+    int hor = 0;
+
+    // Calculate horizon depending on type, factor and input (n)
+    switch (horizonType) {
+        case HORIZON_LINEAR:
+            // Linear Horizon: f*n
+            hor = ((int)factor)*n;
+            break;
+
+        case HORIZON_EXPONENTIAL:
+            // Exponential horizon: f^n
+            hor = ceil(pow(factor, n));
+            break;
+    }
+
+    return hor + horizonOffset;
+}
+

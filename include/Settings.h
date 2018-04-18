@@ -2,10 +2,15 @@
 #define _PARALLELGP_SETTINGS_H
 
 #include <string>
+#include <stdlib.h>
 
 #include "Settings.h"
 #include "ParameterProcessor.h"
 #include "Logger.h"
+
+
+#define HORIZON_LINEAR 1
+#define HORIZON_EXPONENTIAL 2
 
 
 class Settings {
@@ -13,8 +18,12 @@ class Settings {
         int verbosityLevel;
         const char *inputFile;
         int dumpPlanningGraph = 0;
+
         std::string plannerName;
         int threadCount;
+
+        int horizonType;
+        double horizonFactor;
 
     public:
         Settings();
@@ -25,8 +34,20 @@ class Settings {
             inputFile = pp.getFilename();
             verbosityLevel = pp.getIntParam("v", 0);
             dumpPlanningGraph = pp.isSet("dump");
-            plannerName = pp.getParam("p", "satex");
-            threadCount = pp.getIntParam("t", 1);
+
+            plannerName = pp.getParam("p", "sppsat");
+            threadCount = pp.getIntParam("t", 2);
+
+            // Set the type of horizon accordingly as an int to save runtime
+            std::string ht = pp.getParam("h", "lin");
+            if (ht == "lin") {
+                horizonType = HORIZON_LINEAR;
+            } else if (ht == "exp") {
+                horizonType = HORIZON_EXPONENTIAL;
+            }
+            // Cast parameter to a double
+            std::string hf = pp.getParam("hf", "4");
+            horizonFactor = atof(hf.c_str());
 
             log(0, "Parameters: ");
             pp.printParams();
@@ -50,6 +71,14 @@ class Settings {
 
         int getThreadCount() {
             return threadCount;
+        }
+
+        int getHorizonType() {
+            return horizonType;
+        }
+
+        double getHorizonFactor() {
+            return horizonFactor;
         }
 };
 
