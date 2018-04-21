@@ -82,29 +82,13 @@ class PlanningProblem : public IPlanningProblem {
         // List of goal propositions
         std::list<Proposition> goalPropositions;
 
-        // Planning graph edges (note that they are always the same in every layer, if
-        // they appear, so we only need to define them once.) They are all implemented
-        // with adjacency arrays
-        //
-        // Precondition edges ("From actions to their preconditions")
-        std::vector<int> actionPrecIndices;
-        std::vector<Proposition> actionPrecEdges;
-        // Positive effect edges ("From actions to their positive effects")
-        std::vector<int> actionPosEffIndices;
-        std::vector<Proposition> actionPosEffEdges;
-        // Negative effect edges ("From actions to their negative effects")
-        std::vector<int> actionNegEffIndices;
-        std::vector<Proposition> actionNegEffEdges;
-
-        // And again as vectors of lists to avoid copying
+        // Planning graph effect and precondition edges for each layer
         std::vector<std::list<Proposition>> actionPrecs;
         std::vector<std::list<Proposition>> actionPosEffs;
         std::vector<std::list<Proposition>> actionNegEffs;
 
-
         // Positive effect edges from positive effects to actions
         // This is needed when determining proposition mutexes
-        // Implemented as an adjacency list
         std::map<Proposition, std::list<Action>> propPosActions;
 
         // Number of last proposition layer
