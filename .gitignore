@@ -10,3 +10,5 @@ testing/mystery_log.txt
 testing/translate/*.pyc
 testing/translate/pddl/*.pyc
 testing/translate/pddl_parser/*.pyc
+ipasir/sat/abcdsat_i17
+ipasir/sat/cryptominisat
