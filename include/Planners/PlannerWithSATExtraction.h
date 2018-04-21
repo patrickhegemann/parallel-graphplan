@@ -38,6 +38,13 @@ class PlannerWithSATExtraction : public Planner {
         int propositionAtLayer(Proposition p, int layer);
         int actionAtLayer(Action a, int layer);
 
+        // Offset of the horizon (i.e. the layer that is reached before the
+        // main loop is started)
+        int horizonOffset;
+        // Calculates the 'horizon' for a given iteration number.
+        // E.g. for a linear horizon this is a linear function.
+        int horizon(int n);
+
     private:
         bool solverInitialized = false;
         void *solver;

@@ -64,16 +64,6 @@ class SimpleParallelPlannerWithSAT : public PlannerWithSATExtraction {
 
         // Mutex for the problem/planning graph
         std::mutex graphMutex;
-
-        // Number of iterations of the main loop that happened
-        int mainIterations;
-        // Offset of the horizon (i.e. the layer that is reached before the
-        // main loop is started)
-        int horizonOffset;
-        // Calculates the 'horizon' for a given iteration number.
-        // E.g. for a linear horizon this is a linear function.
-        int horizon(int n);
-
 };
 
 

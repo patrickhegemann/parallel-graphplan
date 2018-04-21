@@ -2,7 +2,6 @@
 #include <iterator>
 #include <algorithm>
 #include <assert.h>
-#include <cmath>
 #include <map>
 
 #include <unistd.h>
@@ -78,7 +77,6 @@ int SimpleParallelPlannerWithSAT::graphplan(Plan& plan) {
 
         if (doExpand) {
             // Extract at horizon level
-            log(1, "horizon: %d, action layers: %d\n", horizon(iteration), problem->getLastActionLayer());
             int extractionLayer = horizon(iteration);
             horizonInv[extractionLayer] = iteration;
 
@@ -101,8 +99,6 @@ int SimpleParallelPlannerWithSAT::graphplan(Plan& plan) {
         } else {
             sleep(1);
         }
-
-        //sleep(1);
     }
 
     plan = solution;
@@ -131,8 +127,13 @@ void* SimpleParallelPlannerWithSAT::extractionThread(void* solver, void* args) {
     SimpleParallelPlannerWithSAT *planner = param->planner;
     int layer = param->layer;
 
+    // If problem has been solved in the meantime, abort prematurely
+    if (planner->problemSolved) {
+        delete param;
+        return NULL;
+    }
+
     // Get the last layer of clauses that have been added to the solver
-    // TODO: Is this thread safe?
     int lastLayer = 1;
     if (planner->solversLastLayer.count(solver) == 0) {
         planner->solversLastLayer[solver] = 1;
@@ -147,6 +148,11 @@ void* SimpleParallelPlannerWithSAT::extractionThread(void* solver, void* args) {
     // Add necessary clauses to this thread's SAT solver
     for (int i = lastLayer; i <= layer; i++) {
         planner->addClausesToSolver(solver, i);
+        // If problem has been solved in the meantime, abort prematurely
+        if (planner->problemSolved) {
+            delete param;
+            return NULL;
+        }
     }
     // Update solver information
     planner->solversLastLayer[solver] = layer;
@@ -208,28 +214,5 @@ void SimpleParallelPlannerWithSAT::addClausesToSolver(void *solver, int actionLa
     // Get lock and then add clauses
     std::unique_lock<std::mutex> lck(graphMutex);
     PlannerWithSATExtraction::addClausesToSolver(solver, actionLayer);
-}
-
-int SimpleParallelPlannerWithSAT::horizon(int n) {
-    // Get parameters
-    int horizonType = settings->getHorizonType();
-    double factor = settings->getHorizonFactor();
-
-    int hor = 0;
-
-    // Calculate horizon depending on type, factor and input (n)
-    switch (horizonType) {
-        case HORIZON_LINEAR:
-            // Linear Horizon: f*n
-            hor = ((int)factor)*n;
-            break;
-
-        case HORIZON_EXPONENTIAL:
-            // Exponential horizon: f^n
-            hor = ceil(pow(factor, n));
-            break;
-    }
-
-    return hor + horizonOffset;
 }
 
