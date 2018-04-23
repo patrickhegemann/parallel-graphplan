@@ -481,7 +481,7 @@ int Planner::checkActionsMutex(Action a, Action b) {
  * @param layer
  *      The proposition layer where the preconditions of the actions are in
  */
-int Planner::checkActionPrecsMutex(int a, int b, int propLayer) {
+int Planner::checkActionPrecsMutex(Action a, Action b, int propLayer) {
     for (Proposition p : problem->getActionPreconditions(a)) {
         for (Proposition q : problem->getActionPreconditions(b)) {
             if (p == q) continue;
@@ -495,8 +495,14 @@ int Planner::checkActionPrecsMutex(int a, int b, int propLayer) {
 }
 
 
+
+bool Planner::compareActionAddTime(const Action& a, const Action& b) {
+    return (problem->getActionFirstLayer(a) > problem->getActionFirstLayer(b));
+}
+
+
 int Planner::extract(std::list<Proposition> goal, int layer, Plan& plan) {
-    log(2, "Extracting in layer %d\n", layer);
+    log(1, "Extracting in layer %d\n", layer);
 
     for (Proposition g : goal) {
         log(4, "\t%s\n", problem->getPropositionName(g).c_str());
@@ -532,15 +538,17 @@ int Planner::extract(std::list<Proposition> goal, int layer, Plan& plan) {
 }
 
 int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, int layer, Plan& plan) {
-    log(2, "Performing gpSearch %d\n", goal.size());
+    log(3, "Performing gpSearch %d  %d\n", goal.size(), actions.size());
 
     int actionLayer = problem->getActionLayerBeforePropLayer(layer);
 
+    /*
     for (auto g : goal) {
         //std::cout << problem->propNames[g] << ", ";
         std::cout << "(" << g.first << "," << g.second << ") " << problem->getPropositionName(g) << ", ";
     }
     std::cout << std::endl;
+    */
     
     
     // All actions already chosen
@@ -570,7 +578,6 @@ int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, in
     // Get providers (actions) of p
     std::list<Action> providers;
     for (Action provider : problem->getPropPosActions(nextProp)) {
-        log(2, "ppa %s\n", problem->getActionName(provider).c_str());
         // Check if provider is enabled and if not, skip provider
         if (!(problem->isActionEnabled(provider, actionLayer))
                 || problem->getActionFirstLayer(provider) > actionLayer) {
@@ -584,12 +591,23 @@ int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, in
                 mut = true;
                 break;
             }
+
+            std::cout << "not mutex:\n";
+            for (auto& p1 : problem->getActionPreconditions(act)) {
+                std::cout << p1.first << " " << p1.second << "|";
+            }
+            std::cout << std::endl;
+            for (auto& p2 : problem->getActionPreconditions(provider)) {
+                std::cout << p2.first << " " << p2.second << "|";
+            }
+            std::cout << std::endl;
         }
 
         // Add provider to the list
         if (!mut) {
+            log(2, "action added: %s\n", problem->getActionName(provider).c_str());
             // Small hack: Add trivial actions to the back and others to the front, so they'd get chosen first
-            log(2, "doot\n");
+            // TODO: this doesn't have an effect since the list is sorted afterwards anyway
             if (problem->isTrivialAction(provider)) {
                 providers.push_back(provider);
             } else {
@@ -598,20 +616,17 @@ int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, in
         }
     }
 
-    log(2, "size %d\n", providers.size());
-
-
     // No providers for goal => no plan
     if (providers.size() == 0) {
         return 0;
     }
+
+    // Sort providers by the time they were added
+    providers.sort([this](Action a, Action b) {
+        return (problem->getActionFirstLayer(a) > problem->getActionFirstLayer(b));
+    });
     
-    // Add a providing action
-    // TODO: Add some different variants (possibly with heuristics) to choose one provider
-    /* Select provider for chosen proposition. Non-deterministic choice point (=> Backtrack here)
-     * Simple method: Just try every provider one after another
-     * TODO: Parallelize here
-     */
+    // Add a providing action and backtrack to here if it doesn't work
     for (Action provider : providers) {
         // Copy goal and action list for next recursive call
         std::list<Proposition> newGoal(goal);
@@ -621,9 +636,7 @@ int Planner::gpSearch(std::list<Proposition> goal, std::list<Action> actions, in
         newActions.push_back(provider);
 
         // Remove action effects from goal list
-        log(2, "action: %s\n", problem->getActionName(provider).c_str());
         for (Proposition posEff : problem->getActionPosEffects(provider)) {
-            log(2, "NOOT %d,%d %s\n", posEff.first, posEff.second, problem->getPropositionName(posEff).c_str());
             newGoal.remove(posEff);
         }
 

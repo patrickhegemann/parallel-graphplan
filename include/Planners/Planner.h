@@ -63,6 +63,9 @@ class Planner {
         int checkActionsMutex(Action a, Action b);
         // Checks if preconditions of actions are mutex in the given layer
         int checkActionPrecsMutex(Action a, Action b, int propLayer);
+
+        // Compares when two actions were added to the graph
+        bool compareActionAddTime(const Action& a, const Action& b);
         
         // Extract a plan for the given goal, starting at the specified layer
         // Calls gpSearch recursively

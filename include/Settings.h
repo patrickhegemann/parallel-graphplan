@@ -25,6 +25,8 @@ class Settings {
         int horizonType;
         double horizonFactor;
 
+        int layerPackSize;
+
     public:
         Settings();
         Settings(int argc, char **argv) {
@@ -45,9 +47,12 @@ class Settings {
             } else if (ht == "exp") {
                 horizonType = HORIZON_EXPONENTIAL;
             }
+
             // Cast parameter to a double
             std::string hf = pp.getParam("hf", "4");
             horizonFactor = atof(hf.c_str());
+
+            layerPackSize = pp.getIntParam("lps", 4);
 
             log(0, "Parameters: ");
             pp.printParams();
@@ -79,6 +84,10 @@ class Settings {
 
         double getHorizonFactor() {
             return horizonFactor;
+        }
+
+        int getLayerPackSize() {
+            return layerPackSize;
         }
 };
 

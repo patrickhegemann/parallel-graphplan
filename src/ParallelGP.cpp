@@ -17,6 +17,7 @@
 #include "Settings.h"
 #include "Logger.h"
 
+#include "Planners/LPEPEPlanner.h"
 #include "Planners/SimpleParallelPlannerWithSAT.h"
 #include "Planners/PlannerWithSATExtraction.h"
 #include "Planners/Planner.h"
@@ -67,6 +68,8 @@ int findPlan(IPlanningProblem *problem, Plan& plan) {
         planner = new PlannerWithSATExtraction(problem);
     } else if (plannerName == "sppsat") {   // Simple Parallel Planner with SAT
         planner = new SimpleParallelPlannerWithSAT(problem);
+    } else if (plannerName == "lpepe") {
+        planner = new LPEPEPlanner(problem);
     }
     
     // Call planner
@@ -78,8 +81,6 @@ int findPlan(IPlanningProblem *problem, Plan& plan) {
     }
 
     delete planner;
-
-    log(1, "checkpoint 1\n");
 
     // No plan
     if (!success) {

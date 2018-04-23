@@ -7,9 +7,10 @@
 #include <unistd.h>
 #include <thread>
 
-#include "Planners/SimpleParallelPlannerWithSAT.h"
+#include "Planners/LPEPEPlanner.h"
 #include "Logger.h"
 #include "Settings.h"
+#include "common.h"
 
 #ifdef IPASIRCPP
 #include "ipasir.h"
@@ -21,15 +22,13 @@ extern "C" {
 
 
 
-SimpleParallelPlannerWithSAT::SimpleParallelPlannerWithSAT(IPlanningProblem *problem) {
+LPEPEPlanner::LPEPEPlanner(IPlanningProblem *problem) {
     this->problem = problem;
     problemSolved = false;
-    lastFailedLayer = 0;
-    horizonOffset = 0;
 
     // Create thread pool with 1 tag (0)
     int threadCount = settings->getThreadCount();
-    threadPool = new SATSolverThreadPool(1);
+    threadPool = new SATPriorityThreadPool(1);
     threadPool->addWorkers(0, threadCount, createSATSolver, this);
 
     // Get action and proposition count from problem data
@@ -37,11 +36,11 @@ SimpleParallelPlannerWithSAT::SimpleParallelPlannerWithSAT(IPlanningProblem *pro
     countPropositions = problem->getPropositionCount();
 }
 
-SimpleParallelPlannerWithSAT::~SimpleParallelPlannerWithSAT() {
+LPEPEPlanner::~LPEPEPlanner() {
     delete threadPool;
 }
 
-int SimpleParallelPlannerWithSAT::graphplan(Plan& plan) {
+int LPEPEPlanner::graphplan(Plan& plan) {
     log(0, "SPPSAT algorithm using SAT Solver %s\n", ipasir_signature());
 
     // Expand the graph until we hit a fixed-point level or we find out that
@@ -83,10 +82,10 @@ int SimpleParallelPlannerWithSAT::graphplan(Plan& plan) {
             ThreadParameters *tp = new ThreadParameters();
             tp->planner = this;
             tp->layer = extractionLayer;
-            SATSolverThreadPool::Job j;
+            SATPriorityThreadPool::Job j;
             j.func = extractionThread;
             j.arguments = (void*)tp;
-            threadPool->enqueueJob(0, j);
+            threadPool->enqueueJob(extractionLayer, 0, j);
 
             // Expand the graph to the horizon
             while (problem->getLastActionLayer() < horizon(iteration+1)) {
@@ -106,12 +105,13 @@ int SimpleParallelPlannerWithSAT::graphplan(Plan& plan) {
 }
 
 // Initializes one SAT solver for one thread
-void* SimpleParallelPlannerWithSAT::createSATSolver(void *args) {
+void* LPEPEPlanner::createSATSolver(void *args) {
 	void *solver = ipasir_init();
 
     #ifndef PGP_NOSETLEARN
 	// Set clause learning callback
     ipasir_set_learn(solver, NULL, 0, NULL);
+	ipasir_set_terminate(solver, args, solverTerminator);
     #endif
 
     return solver;
@@ -119,11 +119,11 @@ void* SimpleParallelPlannerWithSAT::createSATSolver(void *args) {
 
 // Each extraction thread is running this function which extracts a plan
 // starting from a given layer.
-// args has to be of type SimpleParallelPlannerWithSAT::ThreadParameters
-void* SimpleParallelPlannerWithSAT::extractionThread(void* solver, void* args) {
+// args has to be of type LPEPEPlanner::ThreadParameters
+void* LPEPEPlanner::extractionThread(void* solver, void* args) {
     // Get parameters for this thread
     ThreadParameters *param = (ThreadParameters*) args;
-    SimpleParallelPlannerWithSAT *planner = param->planner;
+    LPEPEPlanner *planner = param->planner;
     int layer = param->layer;
 
     // If problem has been solved in the meantime, abort prematurely
@@ -140,21 +140,21 @@ void* SimpleParallelPlannerWithSAT::extractionThread(void* solver, void* args) {
         lastLayer = planner->solversLastLayer[solver];
     }
 
-    // Set termination callback for SAT solver, including information of the
-    // current extraction run, e.g. which layer.
-	ipasir_set_terminate(solver, args, solverTerminator);
-
     // Add necessary clauses to this thread's SAT solver
     for (int i = lastLayer; i <= layer; i++) {
-        planner->addClausesToSolver(solver, i);
+        // TODO: only add new mutexes planner->addClausesToSolver(solver, i);
         // If problem has been solved in the meantime, abort prematurely
         if (planner->problemSolved) {
             delete param;
             return NULL;
         }
     }
-    // Update solver information
+
     planner->solversLastLayer[solver] = layer;
+
+    // Set termination callback for SAT solver, including information of the
+    // current extraction run, e.g. which layer.
+	ipasir_set_terminate(solver, args, solverTerminator);
 
     // Extract plan
     Plan plan;
@@ -166,13 +166,6 @@ void* SimpleParallelPlannerWithSAT::extractionThread(void* solver, void* args) {
     if (success) {
         // Mark the problem as solved so planner can terminate
         planner->markProblemSolved(plan);
-    } else {
-        // Update last failed layer so other threads can terminate that work
-        // on extraction from a lower layer
-        std::unique_lock<std::mutex> lck(planner->lastFailedLayerMutex);
-        if (planner->lastFailedLayer < layer) {
-            planner->lastFailedLayer = layer;
-        }
     }
 
     delete param;
@@ -181,7 +174,7 @@ void* SimpleParallelPlannerWithSAT::extractionThread(void* solver, void* args) {
 
 
 // Can be called by a thread to provide a solution to the planning problem.
-void SimpleParallelPlannerWithSAT::markProblemSolved(Plan plan) {
+void LPEPEPlanner::markProblemSolved(Plan plan) {
     std::unique_lock<std::mutex> lck(solvedMutex);
     if (!problemSolved) {
         problemSolved = true;
@@ -191,27 +184,60 @@ void SimpleParallelPlannerWithSAT::markProblemSolved(Plan plan) {
 
 // This function is called by the SAT solvers from different threads
 // to determine if they should abort solving of the formula.
-// A non-zero value indicates that the solver should abort (in accordance with
-// the ipasir definition).
-int SimpleParallelPlannerWithSAT::solverTerminator(void* state) {
-    // Get arguments (used planner and layer)
-    auto *p = (SimpleParallelPlannerWithSAT::ThreadParameters*) state;
-    int layer = p->layer;
-    auto *planner = p->planner;
+// A non-zero value indicates that the solver should abort.
+int LPEPEPlanner::solverTerminator(void* state) {
+    // Get arguments (planner)
+    auto *planner = (LPEPEPlanner*) state;
     // If problem was solved, or extraction failed at a higher layer, terminate
-    int t = planner->problemSolved || planner->lastFailedLayer >= layer;
+    int t = planner->problemSolved;
 	return t;
 }
 
-void SimpleParallelPlannerWithSAT::expand() {
+void LPEPEPlanner::expand() {
     // Get lock and then expand graph
     std::unique_lock<std::mutex> lck(graphMutex);
     Planner::expand();
 }
 
-void SimpleParallelPlannerWithSAT::addClausesToSolver(void *solver, int actionLayer) {
+void LPEPEPlanner::addClausesToSolver(void *solver, int actionLayer) {
     // Get lock and then add clauses
     std::unique_lock<std::mutex> lck(graphMutex);
     PlannerWithSATExtraction::addClausesToSolver(solver, actionLayer);
+}
+
+void LPEPEPlanner::addNewMutexesToSolver(void *solver, int actionLayer) {
+
+}
+
+
+int LPEPEPlanner::extract(void* solver, std::list<Proposition> goal, int layer, Plan& plan) {
+    log(0, "Extracting in layer %d with LPEPE\n", layer);
+
+    int packSize = settings->getLayerPackSize();
+    // Layer at which the goals will be assumed
+    int goalPackLayer = ((layer - 1) % packSize) + 1;
+
+    // Assume that the goal is true in this layer
+    for (Proposition p : goal) {
+        ipasir_assume(solver, propositionAtLayer(p, goalPackLayer));
+    }
+
+    if (ipasir_solve(solver) == IPASIR_IS_SAT) {
+        for (int i = problem->getFirstActionLayer(); i <= problem->getActionLayerBeforePropLayer(layer); i++) {
+            std::list<Action> actions;
+            for (Action a : problem->getLayerActions(i)) {
+                int lit = actionAtLayer(a, i);
+                if (ipasir_val(solver, lit) == lit) {
+                    actions.push_back(a);
+                }
+            }
+            plan.addLayer(actions);
+        }
+        log (0, "Done extracting: success\n");
+        return 1;
+    } else {
+        log (0, "Done extracting: failure/terminated\n");
+        return 0;
+    }
 }
 
