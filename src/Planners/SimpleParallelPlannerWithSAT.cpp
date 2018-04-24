@@ -204,14 +204,84 @@ int SimpleParallelPlannerWithSAT::solverTerminator(void* state) {
 }
 
 void SimpleParallelPlannerWithSAT::expand() {
-    // Get lock and then expand graph
-    std::unique_lock<std::mutex> lck(graphMutex);
     Planner::expand();
+    
+    // Get lock and then make partial copy of graph for extraction threads
+    std::unique_lock<std::mutex> lck(graphCopyMutex);
+    std::list<Proposition> newProps(problem->getLayerPropositions(problem->getLastLayer()));
+    std::list<Action> newActions(problem->getLayerActions(problem->getLastActionLayer()));
+    layerPropsCopy.push_back(newProps);
+    layerActionsCopy.push_back(newActions);
 }
 
 void SimpleParallelPlannerWithSAT::addClausesToSolver(void *solver, int actionLayer) {
-    // Get lock and then add clauses
-    std::unique_lock<std::mutex> lck(graphMutex);
-    PlannerWithSATExtraction::addClausesToSolver(solver, actionLayer);
+    log(0, "Adding clauses to SAT solver %p\n", solver);
+
+    int prevPropLayer = problem->getPropLayerBeforeActionLayer(actionLayer);
+    int nextPropLayer = problem->getPropLayerAfterActionLayer(actionLayer);
+    
+    // Get lock and copy the graph copy
+    std::list<Action> actions;
+    std::list<Proposition> nextProps;
+    {
+        std::unique_lock<std::mutex> lck(graphCopyMutex);
+        auto& actsCopy = layerActionsCopy[actionLayer-1];
+        auto& propsCopy = layerPropsCopy[nextPropLayer-1];
+        actions.assign(actsCopy.begin(), actsCopy.end());
+        nextProps.assign(propsCopy.begin(), propsCopy.end());
+    }
+
+    for (Action a : actions) {
+        // Add precondition clauses to the SAT solver
+        // If an action is done in layer i, the precondition has to be true in layer i-1
+        if (actionLayer != problem->getFirstActionLayer()) {
+            for (Proposition prec : problem->getActionPreconditions(a)) {
+                ipasir_add(solver, -actionAtLayer(a, actionLayer));
+                ipasir_add(solver, propositionAtLayer(prec, prevPropLayer));
+                ipasir_add(solver, 0);
+            }
+        }
+
+        // Add positive effect clauses to the SAT solver
+        // If an action is done in layer i, the positive effect has to be true in layer i+1
+        for (Proposition pos : problem->getActionPosEffects(a)) {
+            ipasir_add(solver, -actionAtLayer(a, actionLayer));
+            ipasir_add(solver, propositionAtLayer(pos, nextPropLayer));
+            ipasir_add(solver, 0);
+        }
+        
+        // Add negative effect clauses to the SAT solver
+        // If an action is done in layer i, the negative effect has to be false in layer i+1
+        for (Proposition neg : problem->getActionNegEffects(a)) {
+            ipasir_add(solver, -actionAtLayer(a, actionLayer));
+            ipasir_add(solver, -propositionAtLayer(neg, nextPropLayer));
+            ipasir_add(solver, 0);
+        }
+
+        // Action mutexes
+        for (Action b : actions) {
+            if (a == b) break;
+            if (problem->isMutexAction(a, b, actionLayer)) {
+                ipasir_add(solver, -actionAtLayer(a, actionLayer));
+                ipasir_add(solver, -actionAtLayer(b, actionLayer));
+                ipasir_add(solver, 0);
+            }
+        }
+    }
+
+    // If a proposition is true in a (non-initial) layer, it must have been enabled
+    // by an action:
+    // p -> a or b or c or ... in previous layer, where a,b,c.. are providers of p
+    for (Proposition p : nextProps) {
+        ipasir_add(solver, -propositionAtLayer(p, nextPropLayer));
+        for (Action a : problem->getPropPosActions(p)) {
+            if (problem->isActionEnabled(a, actionLayer)) {
+                ipasir_add(solver, actionAtLayer(a, actionLayer));
+            }   
+        }
+        ipasir_add(solver, 0);
+    }
+
+    log(0, "Done adding clauses\n");
 }
 

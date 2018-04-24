@@ -62,8 +62,11 @@ class SimpleParallelPlannerWithSAT : public PlannerWithSATExtraction {
         // Mutex for lastFailedLayer
         std::mutex lastFailedLayerMutex;
 
-        // Mutex for the problem/planning graph
-        std::mutex graphMutex;
+        // Copy of the relevant parts of planning graph for synchronisation purposes
+        std::vector<std::list<Proposition>> layerPropsCopy;
+        std::vector<std::list<Action>> layerActionsCopy;
+        // Mutex for the action and proposition lists
+        std::mutex graphCopyMutex;
 };
 
 
