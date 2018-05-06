@@ -15,8 +15,10 @@ IPASIRSOLVER ?= glucose4#abcdsat_i17#cryptominisat5#picosat961#minisat220
 #CXXFLAGS += -D'IPASIRCPP'
 #CXXFLAGS += -D'PGP_NOSETLEARN'
 
+#ipasir/sat/lingeling/
+
 DEPS	= ipasir/sat/$(IPASIRSOLVER)/libipasir$(IPASIRSOLVER).a
-LIBS	= -Lipasir/sat/$(IPASIRSOLVER)/ -lipasir$(IPASIRSOLVER)#-L/usr/local/lib/ -lipasircryptominisat5# #-llgl
+LIBS	= -Lipasir/sat/$(IPASIRSOLVER)/ -lipasir$(IPASIRSOLVER)#-L/usr/local/lib/ -lipasircryptominisat5# #-L./ipasir/sat/lingeling/ -llgl
 LIBS	+= $(shell cat ipasir/sat/$(IPASIRSOLVER)/LIBS 2>/dev/null)
 
 
