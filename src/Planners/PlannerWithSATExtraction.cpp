@@ -8,13 +8,8 @@
 #include "Logger.h"
 #include "Settings.h"
 
-#ifdef IPASIRCPP
-#include "ipasir.h"
-#else
-extern "C" {
-    #include "ipasir.h"
-}
-#endif
+#include "ipasir_cpp.h"
+
 
 
 PlannerWithSATExtraction::PlannerWithSATExtraction(IPlanningProblem *problem) : Planner(problem) {

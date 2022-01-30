@@ -5,13 +5,14 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 
 include_directories(include)
+include_directories(ipasir)
 add_executable(parallel_graphplan
         include/Planners/LPEPEPlanner.h
         include/Planners/Planner.h
         include/Planners/PlannerWithSATExtraction.h
         include/Planners/SimpleParallelPlannerWithSAT.h
         include/common.h
-        include/ipasir.h
+        include/ipasir_cpp.h
         include/IPlanningProblem.h
         include/Logger.h
         include/ParallelGP.h
@@ -25,7 +26,7 @@ add_executable(parallel_graphplan
         include/Settings.h
         include/Threading.h
         include/ThreadPool.h
-        ipasir/ipasir.h
+#        ipasir/ipasir.h
         src/Planners/LPEPEPlanner.cpp
         src/Planners/Planner.cpp
         src/Planners/PlannerWithSATExtraction.cpp

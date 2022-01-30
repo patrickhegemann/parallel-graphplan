@@ -16,7 +16,7 @@
 #include "ipasir.h"
 #else
 extern "C" {
-    #include "ipasir.h"
+    #include "ipasir_cpp.h"
 }
 #endif
 
