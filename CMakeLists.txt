@@ -40,8 +40,17 @@ add_executable(parallel_graphplan
         src/ThreadPool.cpp
         )
 
+# Compile and find ipasir-compatible sat solver
+add_custom_target(
+        lingelingbcj
+        COMMAND make
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ipasir/sat/lingelingbcj
+)
+add_dependencies(parallel_graphplan lingelingbcj)
+
 #find_library(IPASIR ipasirglucose4 ipasir/sat/glucose4/)
 find_library(IPASIR ipasirlingelingbcj ipasir/sat/lingelingbcj)
 
+# Link libraries
 target_link_libraries(parallel_graphplan ${IPASIR})
 target_link_libraries(parallel_graphplan pthread)
