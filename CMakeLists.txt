@@ -2,11 +2,9 @@ cmake_minimum_required(VERSION 3.21)
 project(parallel_graphplan)
 
 set(CMAKE_CXX_STANDARD 14)
-
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 
 include_directories(include)
-
 add_executable(parallel_graphplan
         include/Planners/LPEPEPlanner.h
         include/Planners/Planner.h
@@ -42,6 +40,8 @@ add_executable(parallel_graphplan
         src/ThreadPool.cpp
         )
 
-find_library(IPASIR ipasirglucose4 ipasir/sat/glucose4/)
+#find_library(IPASIR ipasirglucose4 ipasir/sat/glucose4/)
+find_library(IPASIR ipasirlingelingbcj ipasir/sat/lingelingbcj)
+
 target_link_libraries(parallel_graphplan ${IPASIR})
 target_link_libraries(parallel_graphplan pthread)
