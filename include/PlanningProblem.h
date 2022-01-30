@@ -11,7 +11,7 @@
 
 
 /**
- * Class representating a planning problem instance and its planning graph
+ * Class representing a planning problem instance and its planning graph
  *
  * Author: Patrick Hegemann
  */

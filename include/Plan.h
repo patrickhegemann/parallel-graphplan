@@ -7,7 +7,7 @@
 
 
 /**
- * Class for representating a plan for a planning problem
+ * Class for representing a plan for a planning problem
  *
  * Author: Patrick Hegemann
  */

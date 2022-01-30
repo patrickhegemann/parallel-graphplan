@@ -2,7 +2,7 @@
 #define _PARALLELGP_SETTINGS_H
 
 #include <string>
-#include <stdlib.h>
+#include <cstdlib>
 
 #include "Settings.h"
 #include "ParameterProcessor.h"

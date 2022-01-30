@@ -24,7 +24,6 @@ add_executable(parallel_graphplan
         include/SATPriorityThreadPool.h
         include/SATSolverThreadPool.h
         include/Settings.h
-        include/Threading.h
         include/ThreadPool.h
 #        ipasir/ipasir.h
         src/Planners/LPEPEPlanner.cpp
