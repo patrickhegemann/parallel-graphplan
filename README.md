@@ -5,8 +5,9 @@ Symbolic planning in parallel using _Graphplan_ and SAT solving.
 <!-- toc -->
 - [About Parallel Graphplan](#about-parallel-graphplan)
     - [Built With](#built-with)
-- [Getting Started](#setup)
+- [Getting Started](#getting-started)
 - [Usage](#usage)
+- [References](#references)
 <!-- tocstop -->
 
 ## About Parallel Graphplan
