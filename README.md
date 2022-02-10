@@ -12,7 +12,7 @@ Symbolic planning in parallel using _Graphplan_ and SAT solving.
 
 ## About Parallel Graphplan
 
-Code for my Bachelor's Thesis (2018) about parallelizing the symbolic planning algorithm _Graphplan_ [1] using incremental SAT (boolean satisfiability problem) solving.
+Code for my Bachelor's Thesis (2018) about parallelizing the symbolic planning algorithm _Graphplan_ [1] using incremental SAT (boolean satisfiability problem) solving [2].
 
 Similar to Graphplan, the presented algorithm constructs and expands a planning graph, which a plan can then be extracted from.
 The extraction step is formalized as a boolean satisfiability problem and passed to a SAT solver.
@@ -118,3 +118,4 @@ LAYER   STEP    ACTION
 ## References
 
 1. Blum, A. L., & Furst, M. L. (1997). Fast planning through planning graph analysis. Artificial intelligence, 90(1-2), 281-300.
+2. Balyo, T., Biere, A., Iser, M., & Sinz, C. (2016). SAT race 2015. Artificial Intelligence, 241, 45-65.
