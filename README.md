@@ -19,7 +19,7 @@ The extraction step is formalized as a boolean satisfiability problem and passed
 If the formula is satisfiable, a valid plan has been found and can be retrieved from the solution.
 On the other hand, if a formula is unsatisfiable, i.e., a plan could not be extracted, incremental SAT solving is used to extend the formula to a longer horizon.
 This already provides a speedup since the formula does not have to be created from scratch after each failed extraction step, and the progress of the SAT solver, e.g., in the form of learned clauses, is not lost by restarting the solver.
-Furthermore, the algorithm is parallelized by extracting plans from different horizon lenghts at the same time.
+Furthermore, the algorithm is parallelized by extracting plans from different horizon lengths at the same time.
 In some cases, this can result in a superlinear speedup since the extraction of a valid plan becomes easier with growing horizon length.
 
 
